@@ -1,0 +1,10 @@
+{
+	"servers": {
+		"my-mcp-server-2e10d796": {
+			"url": "http://localhost:8082/sse",
+			"type": "sse"
+		},
+	
+	},
+	"inputs": []
+}
