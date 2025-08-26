@@ -2,65 +2,81 @@ package sales
 
 import (
 	"context"
-	"errors"
 	"ttt/gonvex"
+	"ttt/gonvex/schema"
 )
 
-type CustomerAggregate struct {
-	Stream gonvex.EventStream[*Customer]
-	Create gonvex.Command[CustomerCreated, *Customer]
-	AddCar gonvex.Command[CustomerCarAdded, *Customer]
-}
-
-func NewCustomer(name string) *Customer {
-	return &Customer{Name: name, Cars: make([]gonvex.AggregateID, 0)}
-}
-func NewCustomerAggregate(ctx context.Context) *CustomerAggregate {
-	return &CustomerAggregate{
-		Stream: gonvex.NewEventStream[Customer](ctx),
-		Create: gonvex.NewCommand[CustomerCreated](func(a *Customer) error { return nil }),
-		AddCar: gonvex.NewCommand[CustomerCarAdded](func(a *Customer) error {
-			if len(a.Cars) >= 3 {
-				return errors.New("not allowed to add more than 10 cars")
-			}
-			return nil
-		}),
+func NewCustomerAggregate(ctx context.Context) *CustomerRoot {
+	return &CustomerRoot{
+		gonvex.NewAggregateRoot[Customer](ctx),
 	}
 }
 
-type Customer struct {
-	Name string
-	Cars []gonvex.AggregateID
+type CustomerRoot struct {
+	gonvex.AggregateRoot[*Customer]
 }
 
-func (p *Customer) Reduce(event any) error {
-	//	fmt.Printf("ev: %+v\n", event)
+type Address struct {
+	Street string
+	City   string
+	State  string
+	Zip    string
+	Dogs   []string
+}
+
+type Customer struct {
+	Name     schema.Field[string]
+	Adresses schema.List[Address]
+	Cars     schema.List[gonvex.ID]
+}
+
+func (p *Customer) Events() []gonvex.Event {
+	return []gonvex.Event{
+		CustomerCarAdded{},
+		CustomerCreated{},
+	}
+}
+
+func (p *Customer) Reduce(event gonvex.Event) error {
+
 	switch ev := event.(type) {
-	case CustomerCarAdded:
+	case *CustomerCarAdded:
+		p.Cars.Push(ev.CarID)
+	case *CustomerCreated:
 
-		id := gonvex.AggregateID(ev)
-		p.Cars = append(p.Cars, id)
-	case CustomerCreated:
-
-		per := Customer(ev)
+		per := ev.Customer
 
 		*p = per
-
 	}
 
 	return nil
 }
 
-// func (c *CustomerAggregate) Create(ctx context.Context) (gonvex.AggregateID, error) {
-// 	agr := c.Stream.NewAggregate()
-// 	//agr.Root = NewCustomer("Joe")
+func (c *CustomerRoot) Create(ctx context.Context, name string) (gonvex.ID, error) {
+	return c.Command(ctx, nil, func(c *Customer) (gonvex.Event, error) {
 
-// 	event := c.CreateCustomer.New(CustomerCreated{Name: "Joe", Cars: make([]gonvex.AggregateID, 0)})
-// 	// if len(a.cars) >= 10 {
-// 	// 	return errors.New("not allowed to add more than 10 cars")
-// 	// }
+		return &CustomerCreated{Customer: Customer{Name: schema.NewField(name), Cars: schema.NewList[gonvex.ID]()}, AggID: gonvex.NewID()}, nil
 
-// 	return agr.ID, agr.SendEvent(ctx, event)
-// 	//return agr.Mutate(ctx, gonvex.NewEvent(PERSON_CREATED, BOUNDED_CONTEXT, person))
+	})
+}
 
+func (c *CustomerRoot) AddCar(ctx context.Context, id gonvex.ID) error {
+	_, err := c.Command(ctx, &id, func(c *Customer) (gonvex.Event, error) {
+
+		// if len(c.Cars) >= 10 {
+		// 	return nil, fmt.Errorf("can't add cars >= 10")
+		// }
+		return &CustomerCarAdded{AggID: id, CarID: gonvex.NewID()}, nil
+	})
+
+	return err
+
+}
+
+//agr.Root = NewCustomer("Joe")
+
+// if len(a.cars) >= 10 {
+// 	return errors.New("not allowed to add more than 10 cars")
 // }
+
+//return agr.Mutate(ctx, gonvex.NewEvent(PERSON_CREATED, BOUNDED_CONTEXT, person))

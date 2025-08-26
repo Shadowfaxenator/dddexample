@@ -1,35 +1,36 @@
 package gonvex
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/google/uuid"
-	"github.com/nats-io/nats.go"
-	"github.com/nats-io/nats.go/jetstream"
 )
 
-type AggregateID = uuid.UUID
+type ID [16]byte
 
-func NewAggregateID() AggregateID {
-	return AggregateID(uuid.New())
+func NewID() ID {
+	a := uuid.New()
+	return ID(a)
+}
+func (id ID) String() string {
+	return uuid.UUID(id).String()
 }
 
-func AggregateIDFromString(id string) (AggregateID, error) {
+func IDFromString(id string) (ID, error) {
 	aid, err := uuid.Parse(id)
-	return AggregateID(aid), err
+	return ID(aid), err
 }
 
 type Reducible interface {
-	Reduce(event any) error
+	Reduce(event Event) error
+	Events() []Event
 }
 
 type Aggregate[T Reducible] struct {
-	ID         AggregateID
-	Version    uint64
-	Type       string
-	BoundedCtx string
-	Root       T
+	Version uint64
+	Data    T
+}
+
+type Versioned interface {
+	Version() uint64
 }
 
 // func (a *AggregateRoot) Aggregate() *AggregateRoot {
@@ -37,39 +38,3 @@ type Aggregate[T Reducible] struct {
 // }
 
 //func (a *Aggregate[T]) RunCommand()
-
-func (a *Aggregate[T]) SendEvent(ctx context.Context, event Event[T]) error {
-	inv := event.Invariant()
-	if err := inv(a.Root); err != nil {
-		return fmt.Errorf("send event: %w", err)
-	}
-	data, err := event.Data()
-
-	if err != nil {
-		return fmt.Errorf("send event: %w", err)
-	}
-	ae := &AggregateEvent{
-		ID:       uuid.New(),
-		BContext: a.BoundedCtx,
-		AggrID:   a.ID,
-		AggrType: a.Type,
-		Event:    data,
-	}
-
-	msg := nats.NewMsg(fmt.Sprintf("%s-%s.%s", a.Type, a.BoundedCtx, a.ID.String()))
-	msg.Header.Add(EVENT_HEADER, event.Type())
-
-	p, err := Serialize(ae)
-	if err != nil {
-		return fmt.Errorf("send event func: %w", err)
-	}
-
-	msg.Data = p
-
-	_, err = js.PublishMsg(ctx, msg, jetstream.WithExpectLastSequencePerSubject(a.Version))
-	if err != nil {
-		return fmt.Errorf("send event func: %w", err)
-	}
-	return nil
-
-}

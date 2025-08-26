@@ -2,17 +2,30 @@ package sales
 
 import "ttt/gonvex"
 
-const (
-	BOUNDED_CONTEXT       = "PERSONAL"
-	CUSTOMER_CREATED      = "CUSTOMER_CREATED"
-	CUSTOMER_CAR_ADDED    = "CUSTOMER__CAR_ADDED"
-	CUSTOMER__CAR_REMOVED = "CUSTOMER__CAR_REMOVED"
-	ORDER_CREATED         = "ORDER_CREATED"
-)
+type CustomerCarAdded struct {
+	AggID gonvex.ID
+	CarID gonvex.ID
+}
 
-type CustomerCarAdded gonvex.AggregateID
+func (CustomerCarAdded) Type() string {
+	return "CustomerCarAdded"
+}
+func (c CustomerCarAdded) ID() gonvex.ID {
+	return c.AggID
+}
 
-type CustomerCreated Customer
+type CustomerCreated struct {
+	AggID    gonvex.ID
+	Customer Customer
+}
+
+func (CustomerCreated) Type() string {
+	return "CustomerCreated"
+}
+
+func (c CustomerCreated) ID() gonvex.ID {
+	return c.AggID
+}
 
 // var (
 // 	PersonCreated = func(person *Person) *gonvex.Event[any] {

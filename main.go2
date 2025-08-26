@@ -1,0 +1,50 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"ttt/gonvex"
+	"ttt/gonvex/schema"
+)
+
+type Address struct {
+	Street string
+	City   string
+	State  string
+	Zip    string
+	Dogs   []string
+}
+type Customer struct {
+	Name     schema.Field[string]
+	Adresses schema.List[Address]
+	Cars     schema.List[gonvex.ID]
+}
+
+func main() {
+	customer := Customer{
+		Name:     schema.NewField("John Doe"),
+		Adresses: schema.NewList[Address](),
+		Cars:     schema.NewList[gonvex.ID](),
+	}
+
+	customer.Adresses.Push(Address{
+		Street: "123 Main St",
+		City:   "Anytown",
+		State:  "CA",
+		Zip:    "12345",
+		Dogs:   []string{"Fido", "Rex"},
+	})
+	customer.Cars.Push(gonvex.NewID())
+
+	b, _ := json.Marshal(customer)
+	fmt.Printf("b: %+v\n", string(b))
+
+	var c Customer
+	c.Name = schema.NewField("")
+	c.Adresses = schema.NewList[Address]()
+	c.Cars = schema.NewList[gonvex.ID]()
+	json.Unmarshal(b, &c)
+	fmt.Printf("Name: %s\n", c.Name.Get())
+	fmt.Printf("Addresses: %+v\n", c.Adresses.Get())
+	fmt.Printf("Cars: %+v\n", c.Cars.Get())
+}

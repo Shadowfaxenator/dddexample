@@ -8,16 +8,42 @@ import (
 	"github.com/google/uuid"
 )
 
-const EVENT_HEADER = "event_type"
+const (
+	EVENT_TYPE_HEADER        = "ev_type"
+	AGGREGATE_ID_HEADER      = "agg_id"
+	MAX_MSGS            uint = 100
+)
 
-type ctor func(payload []byte) (any, error)
+type ctor func(payload []byte) (Event, error)
 
 var EventRegistry = make(map[string]ctor)
 
-type Event[T Reducible] interface {
+type Event interface {
+	ID() ID
 	Type() string
-	Data() (json.RawMessage, error)
-	Invariant() Invariant[T]
+}
+
+func registerEvent(event Event, bc string) {
+	t := reflect.TypeOf(event)
+	if t.Kind() == reflect.Pointer {
+		panic("registered event can't be a pointer")
+	}
+	vt := reflect.New(t).Interface()
+
+	EventRegistry[eventName(event.Type(), bc)] = func(payload []byte) (Event, error) {
+		var ae AggregateEvent
+		err := Deserialize(payload, &ae)
+		if err != nil {
+			return nil, fmt.Errorf("new event factory: %w", err)
+		}
+
+		if err := Deserialize(ae.Event, vt); err != nil {
+
+			return nil, fmt.Errorf("new event factory: %w", err)
+		}
+
+		return vt.(Event), nil
+	}
 }
 
 type AggregateEvent struct {
@@ -25,68 +51,20 @@ type AggregateEvent struct {
 	BContext string    `json:"bounded_context"`
 	AggrID   uuid.UUID `json:"aggregate_id"`
 	AggrType string    `json:"aggregate_type"`
-	Event    json.RawMessage
+	Event    []byte
 }
 
-type CoreEvent[T any, U Reducible] struct {
-	EType   string `json:"event_type"`
-	Payload T      `json:"payload"`
-	inv     Invariant[U]
-}
+//	type Command[Evt any, AgrRoot Reducible] interface {
+//		Run(ctx context.Context, event Evt, aggr *Aggregate[AgrRoot]) error
+//	}
 
-func (e *CoreEvent[T, U]) Type() string {
-	return e.EType
-}
+func Deserialize(b []byte, out any) error {
 
-func (e *CoreEvent[T, U]) Data() (json.RawMessage, error) {
-
-	return json.Marshal(e.Payload)
-}
-
-func (e *CoreEvent[T, U]) Invariant() Invariant[U] {
-
-	return e.inv
-}
-
-type EventType[T any, U Reducible] struct {
-	etype string
-	inv   Invariant[U]
-}
-
-func (e EventType[T, U]) New(args T) Event[U] {
-	event := CoreEvent[T, U]{EType: e.etype, Payload: args, inv: e.inv}
-
-	return &event
-}
-
-type Command[T any, U Reducible] interface {
-	New(args T) Event[U]
-}
-type Invariant[T Reducible] func(aggr T) error
-
-func NewCommand[T any, U Reducible](inv Invariant[U]) Command[T, U] {
-	name := reflect.TypeFor[T]().Name()
-	EventRegistry[name] = func(payload []byte) (any, error) {
-		ee, err := Deserialize[AggregateEvent](payload)
-		if err != nil {
-			return nil, fmt.Errorf("new event factory: %w", err)
-		}
-		des, err := Deserialize[T](ee.Event)
-		if err != nil {
-			return nil, fmt.Errorf("new event factory: %w", err)
-		}
-		return *des, nil
+	if err := json.Unmarshal(b, &out); err != nil {
+		return fmt.Errorf("deserialize: %w", err)
 	}
-	ev := EventType[T, U]{etype: name, inv: inv}
-	return &ev
-}
 
-func Deserialize[T any](b []byte) (*T, error) {
-	var ev T
-	if err := json.Unmarshal(b, &ev); err != nil {
-		return nil, fmt.Errorf("deserialize: %w", err)
-	}
-	return &ev, nil
+	return nil
 }
 
 func Serialize(e any) ([]byte, error) {
