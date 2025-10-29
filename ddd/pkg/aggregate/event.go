@@ -1,39 +1,25 @@
 package aggregate
 
-import (
-	"reflect"
-)
-
-func typeFromName(e any) string {
-	t := reflect.TypeOf(e)
-	switch t.Kind() {
-	case reflect.Pointer:
-		return t.Elem().Name()
-	default:
-		return t.Name()
-		//	json.Marshal()
-	}
+// EventError is not saved to the event store.
+type EventError[T any] struct {
+	Reason string
 }
 
-type Event[T any] struct {
-	Applyer[T]
-	Type string
+func (e EventError[T]) Error() string {
+	return e.Reason
 }
 
-func NewEvent[T any](event Applyer[T]) *Event[T] {
-
-	return &Event[T]{Applyer: event, Type: typeFromName(event)}
-}
+func (e EventError[T]) Apply(*T) {}
 
 type EventRegistry[T any] interface {
-	RegisterEvent(Applyer[T])
+	RegisterEvent(Event[T])
 }
 
-type Applyer[T any] interface {
+type Event[T any] interface {
 	Apply(*T)
 }
 
-func RegisterEvent[E Applyer[T], T any](reg EventRegistry[T]) {
+func RegisterEvent[E Event[T], T any](reg EventRegistry[T]) {
 	var ev E
 	reg.RegisterEvent(ev)
 }

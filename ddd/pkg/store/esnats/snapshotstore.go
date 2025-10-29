@@ -1,7 +1,8 @@
-package nats
+package esnats
 
 import (
 	"context"
+	"ddd/pkg/aggregate"
 	"ddd/pkg/store"
 	"errors"
 	"fmt"
@@ -9,14 +10,15 @@ import (
 	"github.com/nats-io/nats.go/jetstream"
 )
 
-type SnapshotStore struct {
+type snapshotStore[T any] struct {
 	tname      string
 	boundedCtx string
 	kv         jetstream.KeyValue
 }
 
-func NewSnapshotStore(ctx context.Context, js jetstream.JetStream, bname string, aname string) *SnapshotStore {
-	store := &SnapshotStore{
+func NewSnapshotStore[T any](ctx context.Context, js jetstream.JetStream) *snapshotStore[T] {
+	aname, bname := metaFromType[T]()
+	store := &snapshotStore[T]{
 		tname:      aname,
 		boundedCtx: bname,
 	}
@@ -32,17 +34,17 @@ func NewSnapshotStore(ctx context.Context, js jetstream.JetStream, bname string,
 	return store
 }
 
-func (s *SnapshotStore) snapshotBucketName() string {
+func (s *snapshotStore[T]) snapshotBucketName() string {
 	return fmt.Sprintf("snapshot-%s-%s", s.boundedCtx, s.tname)
 }
 
-func (s *SnapshotStore) Store(ctx context.Context, id string, snap []byte) error {
-	_, err := s.kv.Put(ctx, id, snap)
+func (s *snapshotStore[T]) Store(ctx context.Context, id aggregate.ID[T], snap []byte) error {
+	_, err := s.kv.Put(ctx, string(id), snap)
 	return err
 }
 
-func (s *SnapshotStore) Get(ctx context.Context, id string) ([]byte, error) {
-	v, err := s.kv.Get(ctx, id)
+func (s *snapshotStore[T]) Get(ctx context.Context, id aggregate.ID[T]) ([]byte, error) {
+	v, err := s.kv.Get(ctx, string(id))
 	if err != nil {
 		if errors.Is(err, jetstream.ErrKeyNotFound) {
 			return nil, store.ErrNoSnapshot

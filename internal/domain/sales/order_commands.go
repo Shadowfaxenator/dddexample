@@ -1,43 +1,44 @@
 package sales
 
 import (
-	"context"
 	"ddd/pkg/aggregate"
 )
 
 type CreateOrder struct {
-	OrderID aggregate.ID
-	CustID  aggregate.ID
+	OrderID aggregate.ID[Order]
+	CustID  aggregate.ID[Customer]
 }
 
-func (c CreateOrder) Execute(o *Order) (*aggregate.Event[Order], error) {
-	event := aggregate.NewEvent(OrderCreated{
+func (c CreateOrder) Execute(o *Order) aggregate.Event[Order] {
+	event := &OrderCreated{
 		Order{ID: c.OrderID, CustomerID: c.CustID,
-			Cars: make(map[aggregate.ID]struct{}), Status: ProcessingByCustomer,
-		}})
-	return event, nil
+			Cars: make(map[aggregate.ID[Car]]struct{}), Status: ProcessingByCustomer,
+		}}
+	return event
 }
 
-func (c *SubDomain) CreateOrder(ctx context.Context, ordid aggregate.ID, custID aggregate.ID) error {
-
-	return c.order.Command(ctx, ordid, CreateOrder{CustID: custID, OrderID: ordid})
+type CloseOrder struct {
+	OrderID aggregate.ID[Order]
+	CustID  aggregate.ID[Customer]
 }
 
-func (c *SubDomain) CloseOrder(ctx context.Context, orderID aggregate.ID) error {
-	return c.order.CommandFunc(ctx, orderID, func(c *Order) (*aggregate.Event[Order], error) {
-		return aggregate.NewEvent(OrderClosed{OrderID: orderID, CustID: c.CustomerID}), nil
-	})
+func (c CloseOrder) Execute(o *Order) aggregate.Event[Order] {
+	event := &OrderClosed{
+		OrderID: c.OrderID,
+		CustID:  o.CustomerID,
+	}
+	return event
 }
 
-func (c *SubDomain) AddCarToOrder(ctx context.Context, orderID aggregate.ID, carID aggregate.ID) error {
-	return c.order.CommandFunc(ctx, orderID, func(c *Order) (*aggregate.Event[Order], error) {
-		//return &CustomerCreated{}, nil
-		return aggregate.NewEvent(CarAddedToOrder{CarID: carID, OrderID: orderID}), nil
-	})
+type AddCarToOrder struct {
+	OrderID aggregate.ID[Order]
+	CarID   aggregate.ID[Car]
 }
 
-func (c *SubDomain) MarkVerrified(ctx context.Context, orderID aggregate.ID) error {
-	return c.order.CommandFunc(ctx, orderID, func(c *Order) (*aggregate.Event[Order], error) {
-		return aggregate.NewEvent(OrderVerified{}), nil
-	})
+func (c AddCarToOrder) Execute(o *Order) aggregate.Event[Order] {
+	event := &CarAddedToOrder{
+		OrderID: c.OrderID,
+		CarID:   c.CarID,
+	}
+	return event
 }

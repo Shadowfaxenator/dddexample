@@ -10,7 +10,7 @@ type Address struct {
 }
 
 type Customer struct {
-	aggregate.ID
+	aggregate.ID[Customer]
 	Name         string
 	Age          uint
 	Addresses    []Address

@@ -9,7 +9,7 @@ import (
 
 // }
 
-func (a *Aggregate[T]) Subscribe(ctx context.Context, name string, handler func(Applyer[T]) error, ordered bool) {
+func (a *Aggregate[T]) Subscribe(ctx context.Context, name string, handler func(Event[T]) error, ordered bool) {
 	a.stream.Subscribe(ctx, name, func(b []byte) error {
 		var rec StoreRecord
 		a.serder.Deserialize(b, &rec)
@@ -18,7 +18,7 @@ func (a *Aggregate[T]) Subscribe(ctx context.Context, name string, handler func(
 			return fmt.Errorf("subscribe: %w", err)
 		}
 
-		return handler(ev.(Applyer[T]))
+		return handler(ev)
 
 	}, ordered)
 	//t := reflect.TypeFor[T]()

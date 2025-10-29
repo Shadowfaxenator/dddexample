@@ -13,8 +13,8 @@ const (
 )
 
 type Order struct {
-	aggregate.ID
-	CustomerID aggregate.ID
-	Cars       map[aggregate.ID]struct{}
+	aggregate.ID[Order]
+	CustomerID aggregate.ID[Customer]
+	Cars       map[aggregate.ID[Car]]struct{}
 	Status     RentOrderStatus
 }

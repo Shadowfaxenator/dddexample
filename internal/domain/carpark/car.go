@@ -35,7 +35,7 @@ const (
 )
 
 type Car struct {
-	aggregate.ID
+	aggregate.ID[Car]
 	VIN string
 	CarModel
 	RentState

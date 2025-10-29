@@ -13,17 +13,27 @@ func (cc CustomerCreated) Apply(c *Customer) {
 }
 
 type CustomerOrderClosed struct {
-	OrderID aggregate.ID
+	OrderID aggregate.ID[Order]
 }
 
 func (CustomerOrderClosed) Apply(c *Customer) {
 	c.ActiveOrders--
+
 }
 
 type OrderAccepted struct {
-	OrderID aggregate.ID
+	OrderID aggregate.ID[Order]
 }
 
 func (OrderAccepted) Apply(c *Customer) {
 	c.ActiveOrders++
+}
+
+type OrderRejected struct {
+	OrderID aggregate.ID[Order]
+	Error   error
+}
+
+func (OrderRejected) Apply(c *Customer) {
+
 }

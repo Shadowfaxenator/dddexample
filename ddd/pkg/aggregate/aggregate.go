@@ -3,25 +3,19 @@ package aggregate
 import (
 	"context"
 	"log/slog"
+	"sync"
 
 	"ddd/internal/registry"
 	"ddd/internal/serde"
 	"ddd/pkg/store"
-	nstore "ddd/pkg/store/nats"
 
 	"errors"
 	"fmt"
 
-	"reflect"
-	"strings"
-
 	"github.com/google/uuid"
-	"github.com/nats-io/nats.go"
-	"github.com/nats-io/nats.go/jetstream"
 )
 
 // var nc *nats.Conn
-var js jetstream.JetStream
 
 type messageCount uint
 
@@ -30,7 +24,9 @@ const (
 )
 
 func init() {
-
+	// js, _ := jetstream.New(js)
+	// c, _ := js.CreateOrUpdateConsumer(context.Background(), "d", jetstream.ConsumerConfig{})
+	// c.Consume(func(msg jetstream.Msg) {},jetstream.PullMaxMessages())
 	// var err error
 	// opts := &server.Options{ServerName: "nats1"}
 
@@ -53,23 +49,15 @@ func init() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	nc, err := nats.Connect(nats.DefaultURL)
-	if err != nil {
-		panic(err)
-	}
-	js, err = jetstream.New(nc)
-	if err != nil {
-		panic(err)
-	}
 
 	//ns.WaitForShutdown()
 }
 
-type ID = string
+type ID[T any] string
 
-func NewID() ID {
+func NewID[T any]() ID[T] {
 	a := uuid.New()
-	return a.String()
+	return ID[T](a.String())
 }
 
 // type serdeAggregate[T any] struct {
@@ -90,14 +78,7 @@ type StoreRecord struct {
 	Type string
 }
 
-func New[T any](ctx context.Context, opts ...Option[T]) *Aggregate[T] {
-	t := reflect.TypeFor[T]()
-	if t.Kind() != reflect.Struct {
-		panic("T must be a struct")
-	}
-	aname := t.Name()
-	sep := strings.Split(t.PkgPath(), "/")
-	bcname := sep[len(sep)-1]
+func New[T any](ctx context.Context, es EventStream[T], ss SnapshotStore[T], opts ...Option[T]) *Aggregate[T] {
 
 	//ent := PT(new(T))
 	// for _, v := range ent.RegisterEvents() {
@@ -112,8 +93,8 @@ func New[T any](ctx context.Context, opts ...Option[T]) *Aggregate[T] {
 	// }
 
 	aggr := &Aggregate[T]{
-		stream: nstore.NewEventStream(ctx, js, bcname, aname),
-		snap:   nstore.NewSnapshotStore(ctx, js, bcname, aname),
+		stream: es,
+		snap:   ss,
 		serder: serde.DefaultSerder{},
 
 		//serder:          &DefaultSerder[T]{},
@@ -122,8 +103,8 @@ func New[T any](ctx context.Context, opts ...Option[T]) *Aggregate[T] {
 		o(aggr)
 	}
 
-	aggr.eventRegistry = registry.New(aggr.serder)
-	aggr.commandRegistry = registry.New(aggr.serder)
+	aggr.eventRegistry = registry.New[Event[T]](aggr.serder)
+	aggr.commandRegistry = registry.New[Command[T]](aggr.serder)
 	//var ent T
 	// ent.Events(func(e Applyable[T]) {
 
@@ -141,41 +122,53 @@ func New[T any](ctx context.Context, opts ...Option[T]) *Aggregate[T] {
 	return aggr
 }
 
-type EventStore interface {
-	CreateStream(ctx context.Context, aggName string, bCtx string) *EventStream
+type EventStore[T any] interface {
+	CreateStream(ctx context.Context, aggName string, bCtx string) *EventStream[T]
 }
 
-type EventStream interface {
-	StoreEvent(ctx context.Context, ID string, version uint64, event []byte) error
-	GetEvents(ctx context.Context, ID string, version uint64, handler func(event []byte) error) (uint64, error)
+type Envelope[T any] struct {
+	AggrID  ID[T]
+	Version uint64
+	Body    []byte
+}
+
+type EventStream[T any] interface {
+	StoreEvent(ctx context.Context, events []Envelope[T]) error
+	GetEvents(ctx context.Context, AggrID ID[T], fromSeq uint64, handler func(event []byte) error) (uint64, error)
 	Subscribe(ctx context.Context, name string, handler func(event []byte) error, ordered bool)
-	Name() string
 }
 
-type SnapshotStore interface {
-	Store(ctx context.Context, ID string, snap []byte) error
-	Get(ctx context.Context, ID string) ([]byte, error)
+type SnapshotStore[T any] interface {
+	Store(ctx context.Context, AggrID ID[T], snap []byte) error
+	Get(ctx context.Context, AggrID ID[T]) ([]byte, error)
 }
 
-// type Registry[T Reducible[T]] interface {
-// 	Register(Applyable[T])
-// }
+//	type Registry[T Reducible[T]] interface {
+//		Register(Applyable[T])
+//	}
+type typeRegistry[T any] interface {
+	Exists(tname string) bool
+	Get(tname string, b []byte) (T, error)
+	Register(item T)
+}
 
 type Aggregate[T any] struct {
-	stream          EventStream
-	snap            SnapshotStore
+	stream          EventStream[T]
+	snap            SnapshotStore[T]
 	serder          serde.Serder
-	eventRegistry   *registry.RegistryStore
-	commandRegistry *registry.RegistryStore
+	ermu            sync.RWMutex
+	eventRegistry   typeRegistry[Event[T]]
+	crmu            sync.RWMutex
+	commandRegistry typeRegistry[Command[T]]
 }
 
-type Snapshot[T any] struct {
+type snapshot[T any] struct {
 	MsgCount messageCount
 	Version  uint64
 	Body     *T
 }
 
-func (a *Aggregate[T]) build(ctx context.Context, id ID) (*Snapshot[T], error) {
+func (a *Aggregate[T]) build(ctx context.Context, id ID[T]) (*snapshot[T], error) {
 
 	var ent T
 	//var snap Snapshot[T]
@@ -204,13 +197,13 @@ func (a *Aggregate[T]) build(ctx context.Context, id ID) (*Snapshot[T], error) {
 
 			return fmt.Errorf("build : %w", err)
 		}
-
+		a.ermu.RLock()
 		ev, err := a.eventRegistry.Get(rec.Type, rec.Body)
 		if err != nil {
 			panic(fmt.Sprintf("event not registered: %s", rec.Type))
 		}
-
-		ev.(Applyer[T]).Apply(&ent)
+		a.ermu.RUnlock()
+		ev.Apply(&ent)
 		totalMsgs++
 
 		return nil
@@ -218,68 +211,75 @@ func (a *Aggregate[T]) build(ctx context.Context, id ID) (*Snapshot[T], error) {
 	if err != nil {
 		return nil, fmt.Errorf("buid %w", err)
 	}
-	sn := &Snapshot[T]{Version: last, Body: &ent, MsgCount: totalMsgs}
+	sn := &snapshot[T]{Version: last, Body: &ent, MsgCount: totalMsgs}
 
 	return sn, nil
 }
 
-type CommandFunc[T any] func(*T) (*Event[T], error)
+type CommandFunc[T any] func(*T) Event[T]
 
-func (f CommandFunc[T]) Execute(t *T) (*Event[T], error) {
+func (f CommandFunc[T]) Execute(t *T) Event[T] {
 	return f(t)
 }
 
-func (a *Aggregate[T]) RegisterEvent(event Applyer[T]) {
+func (a *Aggregate[T]) RegisterEvent(event Event[T]) {
+	a.ermu.Lock()
+	defer a.ermu.Unlock()
 	a.eventRegistry.Register(event)
 }
-func (a *Aggregate[T]) RegisterCommand(command Executer[T]) {
+func (a *Aggregate[T]) RegisterCommand(command Command[T]) {
 	a.commandRegistry.Register(command)
 }
 
-func (a *Aggregate[T]) CommandFunc(ctx context.Context, id ID, command func(*T) (*Event[T], error)) error {
+func (a *Aggregate[T]) CommandFunc(ctx context.Context, id ID[T], command func(*T) Event[T]) error {
 	return a.Command(ctx, id, CommandFunc[T](command))
 }
 
-func (a *Aggregate[T]) Command(ctx context.Context, id ID, command Executer[T]) error {
+func (a *Aggregate[T]) Command(ctx context.Context, id ID[T], command Command[T]) error {
 
 	var err error
 
-	snapshot := &Snapshot[T]{}
+	snap := &snapshot[T]{}
 
-	snapshot, err = a.build(ctx, id)
+	snap, err = a.build(ctx, id)
 	if err != nil {
 		if !errors.Is(err, store.ErrNoAggregate) {
 			return fmt.Errorf("build aggrigate: %w", err)
 		}
-		snapshot = &Snapshot[T]{}
+		snap = &snapshot[T]{}
 	}
 
-	evt, err := command.Execute(snapshot.Body)
+	evt := command.Execute(snap.Body)
+
+	if e, ok := evt.(EventError[T]); ok {
+		return fmt.Errorf("command: %w", e)
+	}
+	b, err := a.serder.Serialize(evt)
 	if err != nil {
 		return fmt.Errorf("command: %w", err)
 	}
 
-	b, err := a.serder.Serialize(evt.Applyer)
-	if err != nil {
-		return fmt.Errorf("command: %w", err)
+	tname := registry.TypeNameFrom(evt)
+	if !a.eventRegistry.Exists(tname) {
+		slog.Error("event type not registered", "event", tname)
+		panic(fmt.Errorf("event type not registered: %s", tname))
 	}
-
-	rec := StoreRecord{Body: b, Type: evt.Type}
+	rec := StoreRecord{Body: b, Type: tname}
 
 	r, err := a.serder.Serialize(rec)
 	if err != nil {
 		return fmt.Errorf("command: %w", err)
 	}
 
-	if err := a.stream.StoreEvent(ctx, id, snapshot.Version, r); err != nil {
+	if err := a.stream.StoreEvent(ctx, []Envelope[T]{{AggrID: id, Version: snap.Version, Body: r}}); err != nil {
 		return fmt.Errorf("command: %w", err)
 	}
-	slog.Info("EventStored", "type", evt.Type, "stream", a.stream.Name())
+	slog.Info("EventStored", "type", tname)
 	// Save snapshot if aggregate has more than snapshotSize messages
-	if snapshot != nil {
-		if snapshot.MsgCount >= snapshotSize {
+	if snap != nil {
+		if snap.MsgCount >= snapshotSize {
 			go func() {
-				b, err := a.serder.Serialize(snapshot)
+				b, err := a.serder.Serialize(snap)
 				if err != nil {
 					slog.Warn(err.Error())
 				}

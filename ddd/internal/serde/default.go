@@ -2,17 +2,18 @@ package serde
 
 import "encoding/json"
 
+// type Serializer interface {
+// 	Serialize() ([]byte, error)
+// }
+
+// type Deserializer interface {
+// 	Deserialize(in []byte) error
+// }
+//
+//
 type Serder interface {
 	Serialize(v any) ([]byte, error)
 	Deserialize(b []byte, out any) error
-}
-
-type Serializer interface {
-	Serialize() ([]byte, error)
-}
-
-type Deserializer interface {
-	Deserialize(in []byte) error
 }
 
 type DefaultSerder struct{}
