@@ -1,3 +1,5 @@
+github.com/alekseev-bro/ddd v0.0.0-20251208144955-c8cad9d8cba4 h1:h7LwA0TIOfxWkr8GVkBnMYqbwcEpGoMZNE8om+Bdmo8=
+github.com/alekseev-bro/ddd v0.0.0-20251208144955-c8cad9d8cba4/go.mod h1:+kmpz5km5WC3UaAoxXnL1Js6nZ2uDZ2rP8NWjGRa38w=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/klauspost/compress v1.18.0 h1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zttxdo=

@@ -3,11 +3,9 @@ module github.com/alekseev-bro/dddexample
 go 1.25.5
 
 require (
-	github.com/alekseev-bro/dddexample/ddd v0.0.0-20251208134827-2ab160651d2a
+	github.com/alekseev-bro/ddd v0.0.0-20251208144955-c8cad9d8cba4
 	github.com/nats-io/nats.go v1.47.0
 )
-
-replace github.com/alekseev-bro/dddexample/ddd => ./ddd
 
 require (
 	github.com/google/uuid v1.6.0 // indirect
