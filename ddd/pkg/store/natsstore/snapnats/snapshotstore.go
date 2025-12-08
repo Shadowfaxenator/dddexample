@@ -11,20 +11,31 @@ import (
 )
 
 type snapshotStore[T any] struct {
+	storeType  StoreType
 	tname      string
 	boundedCtx string
 	kv         jetstream.KeyValue
 }
 
-func NewSnapshotStore[T any](ctx context.Context, js jetstream.JetStream) *snapshotStore[T] {
+type StoreType jetstream.StorageType
+
+const (
+	Disk StoreType = iota
+	Memory
+)
+
+func NewSnapshotStore[T any](ctx context.Context, js jetstream.JetStream, opts ...option[T]) *snapshotStore[T] {
 	aname, bname := natsstore.MetaFromType[T]()
 	store := &snapshotStore[T]{
 		tname:      aname,
 		boundedCtx: bname,
 	}
+	for _, opt := range opts {
+		opt(store)
+	}
 	kv, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
 		Bucket:  store.snapshotBucketName(),
-		Storage: jetstream.MemoryStorage,
+		Storage: jetstream.StorageType(store.storeType),
 	})
 	if err != nil {
 		panic(err)

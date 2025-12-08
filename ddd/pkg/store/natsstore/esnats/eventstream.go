@@ -24,7 +24,15 @@ const (
 	eventKindHeader string = "Event-Kind"
 )
 
+type StoreType jetstream.StorageType
+
+const (
+	Disk StoreType = iota
+	Memory
+)
+
 type eventStream[T any] struct {
+	storeType  StoreType
 	partnum    uint8
 	tname      string
 	boundedCtx string
@@ -43,7 +51,7 @@ func NewEventStream[T any](ctx context.Context, js jetstream.JetStream, opts ...
 	_, err := stream.js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
 		Subjects:    []string{stream.allSubjects()},
 		Name:        stream.streamName(),
-		Storage:     jetstream.MemoryStorage,
+		Storage:     jetstream.StorageType(stream.storeType),
 		Duplicates:  2 * time.Minute,
 		AllowDirect: true,
 		RePublish: &jetstream.RePublish{
@@ -78,6 +86,7 @@ func (s *eventStream[T]) subscribeSubject() string {
 }
 
 func (s *eventStream[T]) Save(ctx context.Context, aggrID string, idempotencyKey string, events []*domain.Envelope) error {
+	// TODO: handle many events
 	for _, envel := range events {
 
 		sub := fmt.Sprintf("%s.%s", s.subjectNameForID(aggrID), envel.Kind)

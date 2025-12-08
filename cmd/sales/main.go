@@ -4,12 +4,10 @@ import (
 	"context"
 	"ddd/pkg/domain"
 
-	"log/slog"
-	"net/http"
+	"dddexample/internal/domain/sales"
 	"os"
 	"os/signal"
 	"time"
-	"ttt/internal/domain/sales"
 )
 
 func main() {
@@ -63,36 +61,6 @@ func main() {
 
 	}()
 
-	mux := http.NewServeMux()
-
-	serv := http.Server{
-		Addr:    ":8086",
-		Handler: mux,
-	}
-
-	go func() {
-		<-ctx.Done()
-		sctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		defer cancel()
-		slog.Info("shutting down...")
-		if err := serv.Shutdown(sctx); err != nil {
-			// Only log an error if s.Shutdown returned one.
-			// This handles cases where the timeout was reached or another error occurred.
-			slog.Error("server shutdown failed", "error", err)
-			return
-		}
-		slog.Info("server shutdown complete")
-	}()
-	switch err := serv.ListenAndServe(); err {
-	case http.ErrServerClosed:
-		// This is the expected, successful shutdown exit.
-		slog.Info("server stopped gracefully")
-	case nil:
-		// ListenAndServe shouldn't return nil, but as a safeguard.
-		slog.Info("server exited without error")
-	default:
-		// Log any other non-nil, unexpected error.
-		slog.Error("server failed to start or stopped unexpectedly", "error", err)
-	}
+	<-ctx.Done()
 
 }

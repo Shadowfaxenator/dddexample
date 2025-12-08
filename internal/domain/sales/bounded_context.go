@@ -49,15 +49,15 @@ func New(ctx context.Context) *boundedContext {
 	}
 
 	customer := domain.NewAggregate[Customer](ctx,
-		esnats.NewEventStream[Customer](ctx, js),
-		snapnats.NewSnapshotStore[Customer](ctx, js),
+		esnats.NewEventStream(ctx, js, esnats.WithInMemory[Customer]()),
+		snapnats.NewSnapshotStore(ctx, js, snapnats.WithInMemory[Customer]()),
 	)
 
 	domain.RegisterEvent[*OrderRejected](customer)
 	domain.RegisterEvent[*CustomerCreated](customer)
 	domain.RegisterEvent[*OrderAccepted](customer)
-	oes := esnats.NewEventStream[Order](ctx, js)
-	snap := snapnats.NewSnapshotStore[Order](ctx, js)
+	oes := esnats.NewEventStream(ctx, js, esnats.WithInMemory[Order]())
+	snap := snapnats.NewSnapshotStore(ctx, js, snapnats.WithInMemory[Order]())
 
 	order := domain.NewAggregate[Order](ctx, oes, snap)
 
