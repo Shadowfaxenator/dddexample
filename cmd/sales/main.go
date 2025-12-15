@@ -31,20 +31,20 @@ func main() {
 	}
 	s := sales.New(ctx, js)
 
-	cusid := domain.NewID[sales.Customer]()
+	cusid := s.Customer.NewID()
 
 	idempc := domain.NewIdempotencyKey(cusid, "CreateCustomer")
 
-	err = s.Customer.Execute(ctx, idempc, &sales.CreateCustomer{Customer: sales.Customer{ID: cusid, Name: "John", Age: 20}})
+	_, err = s.Customer.Execute(ctx, idempc, &sales.CreateCustomer{Customer: sales.Customer{ID: cusid, Name: "John", Age: 20}})
 	if err != nil {
 		panic(err)
 	}
 	for range 300 {
 
-		ordid := domain.NewID[sales.Order]()
+		ordid := s.Order.NewID()
 		idempo := domain.NewIdempotencyKey(ordid, "CreateOrder")
 
-		err = s.Order.Execute(ctx, idempo, &sales.CreateOrder{OrderID: ordid, CustID: cusid})
+		_, err = s.Order.Execute(ctx, idempo, &sales.CreateOrder{OrderID: ordid, CustID: cusid})
 		if err != nil {
 			panic(err)
 		}

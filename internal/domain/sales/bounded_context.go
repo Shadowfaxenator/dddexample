@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/alekseev-bro/ddd/pkg/saga"
 	"github.com/alekseev-bro/ddd/pkg/store/natsstore/snapnats"
 
 	"github.com/alekseev-bro/ddd/pkg/store/natsstore/esnats"
@@ -61,31 +62,19 @@ func New(ctx context.Context, js jetstream.JetStream) *boundedContext {
 	domain.RegisterEvent[*OrderVerified](order)
 
 	var subs []domain.Drainer
-	sub, err := order.Project(ctx, &OrderService{
-		Customer: customer,
+	sub, err := order.Project(ctx, &OrderProjection{
+		db: NewRamDB(),
 	})
 	if err != nil {
 		panic(err)
 	}
-	//	subs = append(subs, sub)
-	// sub, err := customer.Project(ctx, &CustomerService{
-	// 	Order: order,
-	// }, domain.FilterByEvent[*OrderAccepted]())
-	// if err != nil {
-	// 	panic(err)
-	// }
+
 	subs = append(subs, sub)
 
-	ss := domain.Saga(ctx, order, customer, func(e *OrderCreated) *ValidateOrder {
+	saga.Step(ctx, order, customer, func(e *OrderCreated) *ValidateOrder {
 
 		return &ValidateOrder{CustomerID: e.Order.CustomerID, OrderID: e.Order.ID}
 	})
-	// ss1 := domain.Saga(ctx, order, customer, func(e *OrderCreated) *ValidateOrder {
-
-	// 	return &ValidateOrder{CustomerID: e.Order.CustomerID, OrderID: e.Order.ID}
-	// })
-
-	subs = append(subs, ss)
 
 	go func() {
 		<-ctx.Done()
@@ -93,7 +82,7 @@ func New(ctx context.Context, js jetstream.JetStream) *boundedContext {
 			sub.Drain()
 
 		}
-		slog.Info("all subscriptions drained")
+		slog.Info("all subscriptions closed")
 
 	}()
 

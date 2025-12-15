@@ -13,7 +13,8 @@ type CustomerService struct {
 func (c *CustomerService) Handle(ctx context.Context, eventID domain.EventID[Customer], e domain.Event[Customer]) error {
 	switch ev := e.(type) {
 	case *OrderAccepted:
-		return c.Order.Execute(ctx, eventID.String(), &CloseOrder{OrderID: ev.OrderID})
+		_, err := c.Order.Execute(ctx, string(eventID), &CloseOrder{OrderID: ev.OrderID})
+		return err
 
 	}
 	return nil
