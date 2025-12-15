@@ -6,7 +6,8 @@ import (
 	"time"
 
 	"github.com/alekseev-bro/ddd/pkg/domain"
-	"github.com/alekseev-bro/ddd/pkg/saga"
+
+	"github.com/alekseev-bro/ddd/pkg/store/natsstore"
 	"github.com/alekseev-bro/ddd/pkg/store/natsstore/snapnats"
 
 	"github.com/alekseev-bro/ddd/pkg/store/natsstore/esnats"
@@ -44,7 +45,7 @@ type boundedContext struct {
 
 func New(ctx context.Context, js jetstream.JetStream) *boundedContext {
 
-	customer := aggregate.New[Customer](ctx,
+	customer := aggregate.New(ctx,
 		esnats.NewEventStream(ctx, js, esnats.WithInMemory[Customer]()),
 		snapnats.NewSnapshotStore(ctx, js, snapnats.WithInMemory[Customer]()),
 		aggregate.WithSnapshotThreshold[Customer](10, time.Second),
@@ -54,8 +55,9 @@ func New(ctx context.Context, js jetstream.JetStream) *boundedContext {
 	domain.RegisterEvent[*CustomerCreated]()
 	domain.RegisterEvent[*OrderAccepted]()
 
-	order := domain.NewNatsAggregate(ctx, js, domain.WithSnapshotThreshold[Order](10, time.Second), domain.WithInMemory[Order]())
-	//order := aggregate.New(ctx, oes, snap, aggregate.WithSnapshotThreshold[Order](10, time.Second))
+	order := natsstore.NewAggregate(ctx, js,
+		natsstore.WithSnapshotThreshold[Order](10, time.Second),
+		natsstore.WithInMemory[Order]())
 
 	domain.RegisterEvent[*OrderCreated]()
 	domain.RegisterEvent[*OrderClosed]()
@@ -71,7 +73,7 @@ func New(ctx context.Context, js jetstream.JetStream) *boundedContext {
 
 	subs = append(subs, sub)
 
-	saga.Step(ctx, order, customer, func(e *OrderCreated) *ValidateOrder {
+	domain.SagaStep(ctx, order, customer, func(e *OrderCreated) *ValidateOrder {
 
 		return &ValidateOrder{CustomerID: e.Order.CustomerID, OrderID: e.Order.ID}
 	})
