@@ -1,7 +1,5 @@
 package sales
 
-import "github.com/alekseev-bro/ddd/pkg/aggregate"
-
 type Address struct {
 	Street string
 	City   string
@@ -10,7 +8,6 @@ type Address struct {
 }
 
 type Customer struct {
-	ID           aggregate.ID[Customer]
 	Name         string
 	Age          uint
 	Addresses    []Address

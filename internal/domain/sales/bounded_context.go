@@ -42,26 +42,24 @@ type boundedContext struct {
 // 	}
 // 	return nil
 // }
+//
+//
 
 func New(ctx context.Context, js jetstream.JetStream) *boundedContext {
 
-	customer := aggregate.New(ctx,
+	customer := domain.NewAggregate(ctx,
 		esnats.NewEventStream(ctx, js, esnats.WithInMemory[Customer]()),
 		snapnats.NewSnapshotStore(ctx, js, snapnats.WithInMemory[Customer]()),
 		aggregate.WithSnapshotThreshold[Customer](10, time.Second),
+		domain.WithEvent[*OrderRejected](),
+		domain.WithEvent[*OrderAccepted](),
 	)
-
-	domain.RegisterEvent[*OrderRejected]()
-	domain.RegisterEvent[*CustomerCreated]()
-	domain.RegisterEvent[*OrderAccepted]()
 
 	order := natsstore.NewAggregate(ctx, js,
 		natsstore.WithSnapshotThreshold[Order](10, time.Second),
-		natsstore.WithInMemory[Order]())
-
-	domain.RegisterEvent[*OrderCreated]()
-	domain.RegisterEvent[*OrderClosed]()
-	domain.RegisterEvent[*OrderVerified]()
+		natsstore.WithInMemory[Order](),
+		natsstore.WithEvent[*OrderClosed](),
+	)
 
 	bc := &boundedContext{
 		Customer: customer,
@@ -72,8 +70,12 @@ func New(ctx context.Context, js jetstream.JetStream) *boundedContext {
 }
 
 func (b *boundedContext) StartOrderCreationSaga(ctx context.Context) {
-	domain.SagaStep(ctx, b.Order, b.Customer, func(e *OrderCreated) *ValidateOrder {
-		return &ValidateOrder{CustomerID: e.Order.CustomerID, OrderID: e.Order.ID}
+	domain.SagaStep(ctx, b.Order, b.Customer, func(e *domain.Created[Order]) *ValidateOrder {
+		return &ValidateOrder{CustomerID: e.Body.CustomerID, OrderID: e.ID}
+	})
+	domain.SagaStep(ctx, b.Order, b.Customer, func(e *domain.Created[Order]) *domain.Create[Customer] {
+
+		return &domain.Create[Customer]{ID: b.Customer.NewID(), Body: &Customer{Name: "ddd"}}
 	})
 }
 

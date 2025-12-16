@@ -4,18 +4,6 @@ import (
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
 )
 
-type OrderCreated struct {
-	Order Order
-}
-
-func (ce *OrderCreated) Apply(c *Order) {
-	*c = ce.Order
-}
-
-// func (ce OrderCreated) String() string {
-// 	return "ORDER_CREATED"
-// }
-
 type CarAddedToOrder struct {
 	OrderID aggregate.ID[Order]
 	CarID   aggregate.ID[Car]

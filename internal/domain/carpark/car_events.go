@@ -19,15 +19,3 @@ type CarRented struct {
 func (ce CarRented) Apply(c *Car) {
 	c.RentState = NotAvailable
 }
-
-type CarCreated struct {
-	Car Car
-}
-
-func (cc CarCreated) Apply(c *Car) {
-	*c = cc.Car
-}
-
-func (CarCreated) Type() string {
-	return "CarCreated"
-}

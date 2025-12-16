@@ -6,22 +6,22 @@ import (
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
 )
 
-type CreateCustomer struct {
-	Customer
-}
+// type CreateCustomer struct {
+// 	Customer
+// }
 
-func (c *CreateCustomer) Execute(a *Customer) aggregate.Event[Customer] {
-	if a != nil {
+// func (c *CreateCustomer) Execute(a *Customer) aggregate.Event[Customer] {
+// 	if a != nil {
 
-		return &aggregate.EventError[Customer]{Reason: "customer already exists"}
-	}
+// 		return &aggregate.EventError[Customer]{Reason: "customer already exists"}
+// 	}
 
-	return &CustomerCreated{Customer: c.Customer}
-}
+// 	return &CustomerCreated{Customer: c.Customer}
+// }
 
-func (c *CreateCustomer) AggregateID() aggregate.ID[Customer] {
-	return c.Customer.ID
-}
+// func (c *CreateCustomer) AggregateID() aggregate.ID[Customer] {
+// 	return c.Customer.ID
+// }
 
 type ValidateOrdersError struct {
 	etype string

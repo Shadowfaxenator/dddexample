@@ -4,22 +4,22 @@ import (
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
 )
 
-type CreateOrder struct {
-	OrderID aggregate.ID[Order]
-	CustID  aggregate.ID[Customer]
-}
+// type CreateOrder struct {
+// 	OrderID aggregate.ID[Order]
+// 	CustID  aggregate.ID[Customer]
+// }
 
-func (c *CreateOrder) Execute(o *Order) aggregate.Event[Order] {
-	event := &OrderCreated{
-		Order{ID: c.OrderID, CustomerID: c.CustID,
-			Cars: make(map[aggregate.ID[Car]]struct{}), Status: ProcessingByCustomer,
-		}}
-	return event
-}
+// func (c *CreateOrder) Execute(o *Order) aggregate.Event[Order] {
+// 	event := &OrderCreated{
+// 		Order{ID: c.OrderID, CustomerID: c.CustID,
+// 			Cars: make(map[aggregate.ID[Car]]struct{}), Status: ProcessingByCustomer,
+// 		}}
+// 	return event
+// }
 
-func (e *CreateOrder) AggregateID() aggregate.ID[Order] {
-	return e.OrderID
-}
+// func (e *CreateOrder) AggregateID() aggregate.ID[Order] {
+// 	return e.OrderID
+// }
 
 type CloseOrder struct {
 	OrderID aggregate.ID[Order]
