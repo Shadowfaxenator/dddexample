@@ -4,8 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/alekseev-bro/ddd/pkg/aggregate"
-	"github.com/alekseev-bro/ddd/pkg/domain"
+	"github.com/alekseev-bro/ddd/pkg/eventstore"
 )
 
 type DB struct {
@@ -35,18 +34,10 @@ func (db *DB) Set(key string, val any) {
 }
 
 type OrderSaga struct {
-	cust domain.Aggregate[Customer]
+	cust eventstore.EventStore[Customer]
 }
 
-func (c *OrderSaga) Handle(ctx context.Context, o *Order, eventID aggregate.EventID[Order]) error {
+func (c *OrderSaga) Handle(ctx context.Context, o *Order, eventID eventstore.EventID[Order]) error {
 
-	if err := c.cust.Update(ctx, o.CustomerID, eventID.String(), func(c *Customer) (*Customer, error) {
-		if err := c.AddOrder(); err != nil {
-			return nil, err
-		}
-		return c, nil
-	}); err != nil {
-		return err
-	}
 	return nil
 }

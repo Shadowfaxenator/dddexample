@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/alekseev-bro/ddd/pkg/eventstore"
 	"github.com/alekseev-bro/dddexample/internal/domain/sales"
 
 	"github.com/nats-io/nats.go"
@@ -33,7 +34,9 @@ func main() {
 	s.StartOrderCreationSaga(ctx)
 
 	time.Sleep(time.Second)
-	custid, err := s.Customer.Create(ctx, &sales.Customer{Name: "joe", Age: 10})
+	custid, err := s.Customer.Create(ctx, s.Customer.NewID(), func(c *sales.Customer) (sales.CustomerEvents, error) {
+		return c.Create("Joe", 33)
+	})
 
 	if err != nil {
 		panic(err)
@@ -41,11 +44,11 @@ func main() {
 
 	//	idempc := aggregate.NewUniqueCommandIdempKey[*sales.CreateCustomer](cusid)
 
-	// _, err = s.Customer.Execute(ctx, idempc, &sales.CreateCustomer{Customer: sales.Customer{ID: cusid, Name: "John", Age: 20}})
+	// _, err = s.Customer.Execute(ctx, custid.String(), &sales.CreateCustomer{Customer: sales.Customer{ID: cusid, Name: "John", Age: 20}})
 	// if err != nil {
 	// 	panic(err)
 	// }
-	for range 10 {
+	for range 3 {
 
 		// ordid := s.Order.NewID()
 		// idempo := aggregate.NewUniqueCommandIdempKey[*sales.CreateOrder](ordid)
@@ -54,10 +57,15 @@ func main() {
 		// if err != nil {
 		// 	panic(err)
 		// }
-		_, err := s.Order.Create(ctx, &sales.Order{CustomerID: custid})
+		oid, err := s.Order.Create(ctx, s.Order.NewID(), func(o *sales.Order) (eventstore.Events[sales.Order], error) {
+			return o.Create(custid)
+		})
 		if err != nil {
 			panic(err)
 		}
+		s.Order.Update(ctx, oid, oid.String(), func(o *sales.Order) (eventstore.Events[sales.Order], error) {
+			return o.Close()
+		})
 	}
 
 	<-ctx.Done()

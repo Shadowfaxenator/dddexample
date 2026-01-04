@@ -1,56 +1,22 @@
 package sales
 
 import (
-	"github.com/alekseev-bro/ddd/pkg/aggregate"
+	"errors"
+
+	"github.com/alekseev-bro/ddd/pkg/eventstore"
 )
 
-// type CreateOrder struct {
-// 	OrderID aggregate.ID[Order]
-// 	CustID  aggregate.ID[Customer]
-// }
+var ErrOrderAlreadyClosed = errors.New("order already closed")
 
-// func (c *CreateOrder) Execute(o *Order) aggregate.Event[Order] {
-// 	event := &OrderCreated{
-// 		Order{ID: c.OrderID, CustomerID: c.CustID,
-// 			Cars: make(map[aggregate.ID[Car]]struct{}), Status: ProcessingByCustomer,
-// 		}}
-// 	return event
-// }
-
-// func (e *CreateOrder) AggregateID() aggregate.ID[Order] {
-// 	return e.OrderID
-// }
-
-type CloseOrder struct {
-	OrderID aggregate.ID[Order]
-	CustID  aggregate.ID[Customer]
-}
-
-func (c *CloseOrder) Execute(o *Order) (aggregate.Event[Order], error) {
-	event := &OrderClosed{
-		OrderID: c.OrderID,
-		CustID:  o.CustomerID,
+func (o *Order) Close() (eventstore.Events[Order], error) {
+	if o.Status != Closed {
+		return eventstore.NewEvents(OrderClosed{}), nil
 	}
-	return event, nil
+	return nil, ErrOrderAlreadyClosed
 }
 
-func (c *CloseOrder) AggregateID() aggregate.ID[Order] {
-	return c.OrderID
-}
-
-type AddCarToOrder struct {
-	OrderID aggregate.ID[Order]
-	CarID   aggregate.ID[Car]
-}
-
-func (c *AddCarToOrder) Execute(o *Order) (aggregate.Event[Order], error) {
-	event := &CarAddedToOrder{
-		OrderID: c.OrderID,
-		CarID:   c.CarID,
-	}
-	return event, nil
-}
-
-func (c *AddCarToOrder) AggregateID() aggregate.ID[Order] {
-	return c.OrderID
+func (o *Order) Create(customerID eventstore.ID[Customer]) (eventstore.Events[Order], error) {
+	o.CustomerID = customerID
+	o.Cars = map[eventstore.ID[Car]]struct{}{}
+	return eventstore.NewEvents(OrderCreated{Order: *o}), nil
 }

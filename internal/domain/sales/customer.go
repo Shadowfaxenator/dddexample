@@ -1,7 +1,5 @@
 package sales
 
-import "fmt"
-
 type Address struct {
 	Street string
 	City   string
@@ -14,15 +12,6 @@ type Customer struct {
 	Age          uint
 	Addresses    []Address
 	ActiveOrders uint
-}
-
-func (c *Customer) AddOrder() error {
-	if c.ActiveOrders > 3 {
-		return fmt.Errorf("active orders > 3")
-	}
-	c.ActiveOrders++
-
-	return nil
 }
 
 // func (p Customer) Events(reg gonvex.RegisterEventFunc[Customer]) {

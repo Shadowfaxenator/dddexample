@@ -1,7 +1,7 @@
 package sales
 
 import (
-	"github.com/alekseev-bro/ddd/pkg/aggregate"
+	"github.com/alekseev-bro/ddd/pkg/eventstore"
 )
 
 type RentOrderStatus uint8
@@ -13,13 +13,8 @@ const (
 )
 
 type Order struct {
-	CustomerID aggregate.ID[Customer]
-	Cars       map[aggregate.ID[Car]]struct{}
+	CustomerID eventstore.ID[Customer]
+	Cars       map[eventstore.ID[Car]]struct{}
 	Status     RentOrderStatus
 	Deleted    bool
-}
-
-func (o *Order) Delete() error {
-	o.Deleted = true
-	return nil
 }

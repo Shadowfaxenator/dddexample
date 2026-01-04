@@ -1,11 +1,11 @@
 package carpark
 
 import (
-	"github.com/alekseev-bro/ddd/pkg/aggregate"
+	"github.com/alekseev-bro/ddd/pkg/eventstore"
 )
 
 type CarRentRejected struct {
-	OrderID aggregate.ID[Car]
+	OrderID eventstore.ID[Car]
 }
 
 func (ce CarRentRejected) Apply(c *Car) {
@@ -13,7 +13,7 @@ func (ce CarRentRejected) Apply(c *Car) {
 }
 
 type CarRented struct {
-	OrderID aggregate.ID[Car]
+	OrderID eventstore.ID[Car]
 }
 
 func (ce CarRented) Apply(c *Car) {

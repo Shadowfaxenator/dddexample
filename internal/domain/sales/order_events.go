@@ -1,12 +1,20 @@
 package sales
 
 import (
-	"github.com/alekseev-bro/ddd/pkg/aggregate"
+	"github.com/alekseev-bro/ddd/pkg/eventstore"
 )
 
+type OrderCreated struct {
+	Order
+}
+
+func (ce OrderCreated) Apply(c *Order) {
+	*c = ce.Order
+}
+
 type CarAddedToOrder struct {
-	OrderID aggregate.ID[Order]
-	CarID   aggregate.ID[Car]
+	OrderID eventstore.ID[Order]
+	CarID   eventstore.ID[Car]
 }
 
 func (ce *CarAddedToOrder) Apply(c *Order) {
@@ -14,27 +22,24 @@ func (ce *CarAddedToOrder) Apply(c *Order) {
 }
 
 type CarRemovedFromOrder struct {
-	OrderID aggregate.ID[Order]
-	CarID   aggregate.ID[Car]
+	OrderID eventstore.ID[Order]
+	CarID   eventstore.ID[Car]
 }
 
-func (ce *CarRemovedFromOrder) Apply(c *Order) {
+func (ce CarRemovedFromOrder) Apply(c *Order) {
 	delete(c.Cars, ce.CarID)
 }
 
 type OrderVerified struct {
-	OrderID aggregate.ID[Order]
+	OrderID eventstore.ID[Order]
 }
 
-func (ce *OrderVerified) Apply(c *Order) {
+func (ce OrderVerified) Apply(c *Order) {
 	c.Status = ValidForProcessing
 }
 
-type OrderClosed struct {
-	OrderID aggregate.ID[Order]
-	CustID  aggregate.ID[Customer]
-}
+type OrderClosed struct{}
 
-func (ce *OrderClosed) Apply(c *Order) {
+func (ce OrderClosed) Apply(c *Order) {
 	c.Status = Closed
 }

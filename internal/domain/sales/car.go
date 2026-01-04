@@ -1,9 +1,9 @@
 package sales
 
-import "github.com/alekseev-bro/ddd/pkg/aggregate"
+import "github.com/alekseev-bro/ddd/pkg/eventstore"
 
 type Car struct {
-	aggregate.ID[Car]
+	eventstore.ID[Car]
 	Make         string
 	Model        string
 	Year         uint
