@@ -2,6 +2,7 @@ package orders
 
 import (
 	"github.com/alekseev-bro/ddd/pkg/essrv"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain"
 )
 
 type OrderPosted struct {
@@ -13,8 +14,8 @@ func (ce OrderPosted) Evolve(c *Order) {
 }
 
 type CarAddedToOrder struct {
-	OrderID essrv.ID[Order]
-	CarID   essrv.ID[Car]
+	OrderID domain.OrderID
+	CarID   domain.CarID
 }
 
 func (ce *CarAddedToOrder) Evolve(c *Order) {
@@ -22,8 +23,8 @@ func (ce *CarAddedToOrder) Evolve(c *Order) {
 }
 
 type CarRemovedFromOrder struct {
-	OrderID essrv.ID[Order]
-	CarID   essrv.ID[Car]
+	OrderID domain.OrderID
+	CarID   domain.CarID
 }
 
 func (ce CarRemovedFromOrder) Evolve(c *Order) {

@@ -2,6 +2,7 @@ package customers
 
 import (
 	"github.com/alekseev-bro/ddd/pkg/essrv"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain"
 )
 
 type Address struct {
@@ -12,7 +13,7 @@ type Address struct {
 }
 
 type Customer struct {
-	ID           CustomerID
+	ID           domain.CustomerID
 	Name         string
 	Age          uint
 	Addresses    []Address
@@ -26,7 +27,7 @@ func (c *Customer) Register(cust *Customer) essrv.Events[Customer] {
 	return nil
 }
 
-func (c *Customer) VerifyOrder(o OrderID) essrv.Events[Customer] {
+func (c *Customer) VerifyOrder(o domain.OrderID) essrv.Events[Customer] {
 	if c.Age < 18 {
 		return essrv.NewEvents(OrderRejected{OrderID: o, Reason: "too young"})
 	}

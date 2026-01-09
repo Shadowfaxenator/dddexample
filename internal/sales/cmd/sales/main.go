@@ -7,11 +7,15 @@ import (
 	"os"
 	"os/signal"
 
-	sales "github.com/alekseev-bro/dddexample/internal/sales/iternal"
-	"github.com/alekseev-bro/dddexample/internal/sales/iternal/domain/customers"
-	"github.com/alekseev-bro/dddexample/internal/sales/iternal/domain/orders"
-	register_customer "github.com/alekseev-bro/dddexample/internal/sales/iternal/features/customer/register_cutomer"
-	"github.com/alekseev-bro/dddexample/internal/sales/iternal/features/order/post_order"
+	"github.com/alekseev-bro/ddd/pkg/essrv"
+	"github.com/alekseev-bro/dddexample/internal/sales"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/customers"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/orders"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/customer"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/order"
+	"github.com/google/uuid"
+
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 )
@@ -33,17 +37,11 @@ func main() {
 	}
 
 	s := sales.NewModule(ctx, js)
-
+	essrv.ProjectEvent(ctx, s.OrderPostedHandler)
 	time.Sleep(time.Second)
-	custid := s.CustomerService.NewID()
+	custid := domain.CustomerID(uuid.New())
 	cust := &customers.Customer{ID: custid, Name: "Joe", Age: 21}
-	_, err = s.CustomerService.ExecuteUnique(ctx, custid, register_customer.Command{Customer: cust})
-	if err != nil {
-		panic(err)
-	}
-	custid2 := s.CustomerService.NewID()
-	cust2 := &customers.Customer{ID: custid, Name: "Joe", Age: 21}
-	_, err = s.CustomerService.ExecuteUnique(ctx, custid2, register_customer.Command{Customer: cust2})
+	err = s.RegisterCustomer.Handle(ctx, essrv.ID[customers.Customer](custid), customer.Register{Customer: cust}, custid.String())
 	if err != nil {
 		panic(err)
 	}
@@ -54,7 +52,7 @@ func main() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	for range 20 {
+	for range 5 {
 
 		// ordid := s.Order.NewID()
 		// idempo := aggregate.NewUniqueCommandIdempKey[*sales.CreateOrder](ordid)
@@ -63,9 +61,9 @@ func main() {
 		// if err != nil {
 		// 	panic(err)
 		// }
-		ordID := s.OrderService.NewID()
-		ord := &orders.Order{ID: ordID, CustomerID: orders.CustomerID(custid)}
-		_, err := s.OrderService.ExecuteUnique(ctx, ordID, post_order.Command{Order: ord})
+		ordID := domain.OrderID(uuid.New())
+		ord := &orders.Order{ID: ordID, CustomerID: custid}
+		err = s.PostOrder.Handle(ctx, essrv.ID[orders.Order](ordID), order.Post{Order: ord}, ordID.String())
 		if err != nil {
 			panic(err)
 		}

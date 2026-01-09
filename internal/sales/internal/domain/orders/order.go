@@ -2,13 +2,15 @@ package orders
 
 import (
 	"github.com/alekseev-bro/ddd/pkg/essrv"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain"
 )
 
 type Order struct {
-	ID         OrderID
-	CustomerID CustomerID
-	Cars       map[CarID]struct{}
+	ID         domain.OrderID
+	CustomerID domain.CustomerID
+	Cars       map[domain.CarID]struct{}
 	Status     RentOrderStatus
+	OrderLines []OrderLine
 	Deleted    bool
 }
 

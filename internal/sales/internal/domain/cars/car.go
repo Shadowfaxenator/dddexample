@@ -1,9 +1,9 @@
 package cars
 
-import "github.com/alekseev-bro/ddd/pkg/essrv"
+import "github.com/alekseev-bro/dddexample/internal/sales/internal/domain"
 
 type Car struct {
-	essrv.ID[Car]
+	ID           domain.CarID
 	Make         string
 	Model        string
 	Year         uint
