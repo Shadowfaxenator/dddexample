@@ -3,11 +3,11 @@ package customer
 import (
 	"errors"
 
-	"github.com/alekseev-bro/ddd/pkg/essrv"
+	"github.com/alekseev-bro/ddd/pkg/events"
 	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/ids"
 )
 
-type AggregateRoot struct {
+type Customer struct {
 	ID           ids.CustomerID
 	Name         string
 	Age          uint
@@ -15,9 +15,9 @@ type AggregateRoot struct {
 	ActiveOrders uint
 }
 
-func (c *AggregateRoot) Register() (essrv.Events[AggregateRoot], error) {
+func (c *Customer) Register() (events.Events[Customer], error) {
 
-	return essrv.NewEvents(Registered{
+	return events.New(Registered{
 		ID:           c.ID,
 		Name:         c.Name,
 		Age:          c.Age,
@@ -29,9 +29,9 @@ func (c *AggregateRoot) Register() (essrv.Events[AggregateRoot], error) {
 
 var ErrInvalidAge = errors.New("invalid age")
 
-func (c *AggregateRoot) VerifyOrder(o ids.OrderID) (essrv.Events[AggregateRoot], error) {
+func (c *Customer) VerifyOrder(o ids.OrderID) (events.Events[Customer], error) {
 	if c.Age < 18 {
-		return essrv.NewEvents(OrderRejected{OrderID: o, Reason: "too young"}), ErrInvalidAge
+		return events.New(OrderRejected{OrderID: o, Reason: "too young"}), ErrInvalidAge
 	}
-	return essrv.NewEvents(OrderAccepted{CustomerID: c.ID, OrderID: o}), nil
+	return events.New(OrderAccepted{CustomerID: c.ID, OrderID: o}), nil
 }

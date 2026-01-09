@@ -12,7 +12,7 @@ type Registered struct {
 	ActiveOrders uint
 }
 
-func (e Registered) Evolve(c *AggregateRoot) {
+func (e Registered) Evolve(c *Customer) {
 	c.ID = e.ID
 	c.Name = e.Name
 	c.Age = e.Age
@@ -25,7 +25,7 @@ type OrderClosed struct {
 	OrderID    ids.OrderID
 }
 
-func (OrderClosed) Evolve(c *AggregateRoot) {
+func (OrderClosed) Evolve(c *Customer) {
 	c.ActiveOrders--
 
 }
@@ -35,7 +35,7 @@ type OrderAccepted struct {
 	OrderID    ids.OrderID
 }
 
-func (OrderAccepted) Evolve(c *AggregateRoot) {
+func (OrderAccepted) Evolve(c *Customer) {
 	c.ActiveOrders++
 }
 
@@ -44,6 +44,6 @@ type OrderRejected struct {
 	Reason  string
 }
 
-func (OrderRejected) Evolve(c *AggregateRoot) {
+func (OrderRejected) Evolve(c *Customer) {
 
 }

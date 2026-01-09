@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/alekseev-bro/ddd/pkg/essrv"
+	"github.com/alekseev-bro/ddd/pkg/events"
 	"github.com/alekseev-bro/dddexample/internal/sales"
 
 	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/ids"
@@ -38,7 +38,7 @@ func main() {
 	}
 
 	s := sales.NewModule(ctx, js)
-	essrv.ProjectEvent(ctx, s.OrderPostedHandler)
+	events.ProjectEvent(ctx, s.OrderPostedHandler)
 	time.Sleep(time.Second)
 	custid := ids.CustomerID(uuid.New())
 	cmdCust := customercase.Register{
@@ -46,7 +46,7 @@ func main() {
 		Name: "Joe",
 		Age:  16,
 	}
-	err = s.RegisterCustomer.Handle(ctx, essrv.ID[customer.AggregateRoot](custid), cmdCust, custid.String())
+	err = s.RegisterCustomer.Handle(ctx, events.ID[customer.Customer](custid), cmdCust, custid.String())
 	if err != nil {
 		panic(err)
 	}
@@ -71,7 +71,7 @@ func main() {
 			ID:         ordID,
 			CustomerID: custid,
 		}
-		err = s.PostOrder.Handle(ctx, essrv.ID[order.AggregateRoot](ordID), ordCmd, ordID.String())
+		err = s.PostOrder.Handle(ctx, events.ID[order.Order](ordID), ordCmd, ordID.String())
 		if err != nil {
 			panic(err)
 		}

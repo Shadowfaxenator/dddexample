@@ -3,7 +3,7 @@ package sales
 import (
 	"context"
 
-	"github.com/alekseev-bro/ddd/pkg/essrv"
+	"github.com/alekseev-bro/ddd/pkg/events"
 	"github.com/alekseev-bro/ddd/pkg/store/natsstore"
 	"github.com/alekseev-bro/ddd/pkg/store/natsstore/esnats"
 	"github.com/alekseev-bro/ddd/pkg/store/natsstore/snapnats"
@@ -23,39 +23,39 @@ type EventHandler[T any] interface {
 
 type Module struct {
 	OrderPostedHandler EventHandler[order.Posted]
-	RegisterCustomer   features.CommandHandler[customer.AggregateRoot, customerUsecase.Register]
-	PostOrder          features.CommandHandler[order.AggregateRoot, orderUsecase.Post]
-	OrderStream        essrv.Projector[order.AggregateRoot]
+	RegisterCustomer   features.CommandHandler[customer.Customer, customerUsecase.Register]
+	PostOrder          features.CommandHandler[order.Order, orderUsecase.Post]
+	OrderStream        events.Projector[order.Order]
 }
 
 func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 
-	cust := essrv.New(ctx,
-		esnats.NewEventStream[customer.AggregateRoot](ctx, js, esnats.EventStreamConfig{
+	cust := events.NewStore(ctx,
+		esnats.NewEventStream[customer.Customer](ctx, js, esnats.EventStreamConfig{
 			StoreType: esnats.Memory,
 		}),
-		snapnats.NewSnapshotStore[customer.AggregateRoot](ctx, js, snapnats.SnapshotStoreConfig{
+		snapnats.NewSnapshotStore[customer.Customer](ctx, js, snapnats.SnapshotStoreConfig{
 			StoreType: snapnats.Memory,
 		}),
-		essrv.AggregateConfig{
+		events.AggregateConfig{
 			SnapthotMsgThreshold: 5,
 		},
 
-		essrv.WithEvent[customer.OrderRejected](),
-		essrv.WithEvent[customer.OrderAccepted](),
-		essrv.WithEvent[customer.Registered](),
+		events.WithEvent[customer.OrderRejected](),
+		events.WithEvent[customer.OrderAccepted](),
+		events.WithEvent[customer.Registered](),
 	)
 
-	ord := natsstore.NewAggregate(ctx, js,
+	ord := natsstore.NewStore(ctx, js,
 		natsstore.NatsAggregateConfig{
-			AggregateConfig: essrv.AggregateConfig{
+			AggregateConfig: events.AggregateConfig{
 				SnapthotMsgThreshold: 5,
 			},
 			StoreType: natsstore.Memory,
 		},
-		essrv.WithEvent[order.Closed](),
-		essrv.WithEvent[order.Posted](),
-		essrv.WithEvent[order.Verified](),
+		events.WithEvent[order.Closed](),
+		events.WithEvent[order.Posted](),
+		events.WithEvent[order.Verified](),
 	)
 	mod := &Module{
 		PostOrder:          orderUsecase.NewPostOrderHandler(ord),

@@ -1,11 +1,11 @@
 package order
 
 import (
-	"github.com/alekseev-bro/ddd/pkg/essrv"
+	"github.com/alekseev-bro/ddd/pkg/events"
 	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/ids"
 )
 
-type AggregateRoot struct {
+type Order struct {
 	ID         ids.OrderID
 	CustomerID ids.CustomerID
 	Cars       []OrderLine
@@ -13,9 +13,9 @@ type AggregateRoot struct {
 	Deleted    bool
 }
 
-func (o *AggregateRoot) Post() (essrv.Events[AggregateRoot], error) {
+func (o *Order) Post() (events.Events[Order], error) {
 
-	return essrv.NewEvents(Posted{
+	return events.New(Posted{
 		ID:         o.ID,
 		CustomerID: o.CustomerID,
 		Cars:       o.Cars,
@@ -25,9 +25,9 @@ func (o *AggregateRoot) Post() (essrv.Events[AggregateRoot], error) {
 
 }
 
-func (o *AggregateRoot) CloseOrder() (essrv.Events[AggregateRoot], error) {
+func (o *Order) CloseOrder() (events.Events[Order], error) {
 	if o.Status != StatusClosed {
-		return essrv.NewEvents(Closed{}), nil
+		return events.New(Closed{}), nil
 	}
 	return nil, nil
 }
