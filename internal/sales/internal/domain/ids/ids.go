@@ -1,4 +1,4 @@
-package domain
+package ids
 
 import (
 	"github.com/alekseev-bro/ddd/pkg/essrv"

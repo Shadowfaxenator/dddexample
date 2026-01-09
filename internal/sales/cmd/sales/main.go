@@ -9,11 +9,12 @@ import (
 
 	"github.com/alekseev-bro/ddd/pkg/essrv"
 	"github.com/alekseev-bro/dddexample/internal/sales"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/customers"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/orders"
+
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/ids"
 	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/customer"
+	customercase "github.com/alekseev-bro/dddexample/internal/sales/internal/features/customer/usecase"
 	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/order"
+	ordercase "github.com/alekseev-bro/dddexample/internal/sales/internal/features/order/usecase"
 	"github.com/google/uuid"
 
 	"github.com/nats-io/nats.go"
@@ -39,9 +40,13 @@ func main() {
 	s := sales.NewModule(ctx, js)
 	essrv.ProjectEvent(ctx, s.OrderPostedHandler)
 	time.Sleep(time.Second)
-	custid := domain.CustomerID(uuid.New())
-	cust := &customers.Customer{ID: custid, Name: "Joe", Age: 21}
-	err = s.RegisterCustomer.Handle(ctx, essrv.ID[customers.Customer](custid), customer.Register{Customer: cust}, custid.String())
+	custid := ids.CustomerID(uuid.New())
+	cmdCust := customercase.Register{
+		ID:   custid,
+		Name: "Joe",
+		Age:  16,
+	}
+	err = s.RegisterCustomer.Handle(ctx, essrv.ID[customer.AggregateRoot](custid), cmdCust, custid.String())
 	if err != nil {
 		panic(err)
 	}
@@ -52,7 +57,7 @@ func main() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	for range 5 {
+	for range 1 {
 
 		// ordid := s.Order.NewID()
 		// idempo := aggregate.NewUniqueCommandIdempKey[*sales.CreateOrder](ordid)
@@ -61,9 +66,12 @@ func main() {
 		// if err != nil {
 		// 	panic(err)
 		// }
-		ordID := domain.OrderID(uuid.New())
-		ord := &orders.Order{ID: ordID, CustomerID: custid}
-		err = s.PostOrder.Handle(ctx, essrv.ID[orders.Order](ordID), order.Post{Order: ord}, ordID.String())
+		ordID := ids.OrderID(uuid.New())
+		ordCmd := ordercase.Post{
+			ID:         ordID,
+			CustomerID: custid,
+		}
+		err = s.PostOrder.Handle(ctx, essrv.ID[order.AggregateRoot](ordID), ordCmd, ordID.String())
 		if err != nil {
 			panic(err)
 		}
