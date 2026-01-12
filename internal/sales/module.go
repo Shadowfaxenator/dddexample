@@ -8,24 +8,20 @@ import (
 	"github.com/alekseev-bro/ddd/pkg/store/natsstore/esnats"
 	"github.com/alekseev-bro/ddd/pkg/store/natsstore/snapnats"
 
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/customer"
-	customerUsecase "github.com/alekseev-bro/dddexample/internal/sales/internal/features/customer/usecase"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/order"
-	orderUsecase "github.com/alekseev-bro/dddexample/internal/sales/internal/features/order/usecase"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer"
+	customercmd "github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer/command"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order"
+	ordercmd "github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order/command"
 
 	"github.com/nats-io/nats.go/jetstream"
 )
 
-type EventHandler[T any] interface {
-	Handle(ctx context.Context, eventID string, event T) error
-}
-
 type Module struct {
-	OrderPostedHandler EventHandler[order.Posted]
-	RegisterCustomer   features.CommandHandler[customer.Customer, customerUsecase.Register]
-	PostOrder          features.CommandHandler[order.Order, orderUsecase.Post]
-	OrderStream        events.Projector[order.Order]
+	OrderPostedHandler events.EventHandler[order.Posted]
+	RegisterCustomer   aggregate.CommandHandler[customer.Customer, customercmd.Register]
+	PostOrder          aggregate.CommandHandler[order.Order, ordercmd.Post]
+	OrderStream        events.Subscriber[order.Order]
 }
 
 func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
@@ -57,10 +53,11 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 		events.WithEvent[order.Posted](),
 		events.WithEvent[order.Verified](),
 	)
+
 	mod := &Module{
-		PostOrder:          orderUsecase.NewPostOrderHandler(ord),
-		RegisterCustomer:   customerUsecase.NewRegisterHandler(cust),
-		OrderPostedHandler: customerUsecase.NewOrderPostedHandler(customerUsecase.NewVerifyOrderHandler(cust)),
+		PostOrder:          ordercmd.NewPostOrderHandler(ord),
+		RegisterCustomer:   customercmd.NewRegisterHandler(cust),
+		OrderPostedHandler: customercmd.NewOrderPostedHandler(customercmd.NewVerifyOrderHandler(cust)),
 		OrderStream:        ord,
 	}
 

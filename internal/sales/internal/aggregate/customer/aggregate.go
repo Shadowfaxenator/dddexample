@@ -4,11 +4,11 @@ import (
 	"errors"
 
 	"github.com/alekseev-bro/ddd/pkg/events"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/ids"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/values"
 )
 
 type Customer struct {
-	ID           ids.CustomerID
+	ID           values.CustomerID
 	Name         string
 	Age          uint
 	Addresses    []Address
@@ -29,7 +29,7 @@ func (c *Customer) Register() (events.Events[Customer], error) {
 
 var ErrInvalidAge = errors.New("invalid age")
 
-func (c *Customer) VerifyOrder(o ids.OrderID) (events.Events[Customer], error) {
+func (c *Customer) VerifyOrder(o values.OrderID) (events.Events[Customer], error) {
 	if c.Age < 18 {
 		return events.New(OrderRejected{OrderID: o, Reason: "too young"}), ErrInvalidAge
 	}

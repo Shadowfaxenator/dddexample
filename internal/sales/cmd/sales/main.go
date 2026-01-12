@@ -10,11 +10,12 @@ import (
 	"github.com/alekseev-bro/ddd/pkg/events"
 	"github.com/alekseev-bro/dddexample/internal/sales"
 
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/ids"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/customer"
-	customercase "github.com/alekseev-bro/dddexample/internal/sales/internal/features/customer/usecase"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/order"
-	ordercase "github.com/alekseev-bro/dddexample/internal/sales/internal/features/order/usecase"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer"
+	customercmd "github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer/command"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order"
+	ordercmd "github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order/command"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/values"
+
 	"github.com/google/uuid"
 
 	"github.com/nats-io/nats.go"
@@ -38,14 +39,15 @@ func main() {
 	}
 
 	s := sales.NewModule(ctx, js)
-	events.ProjectEvent(ctx, s.OrderPostedHandler)
+	events.Project(ctx, s.OrderPostedHandler)
 	time.Sleep(time.Second)
-	custid := ids.CustomerID(uuid.New())
-	cmdCust := customercase.Register{
+	custid := values.CustomerID(uuid.New())
+	cmdCust := customercmd.Register{
 		ID:   custid,
 		Name: "Joe",
 		Age:  16,
 	}
+
 	err = s.RegisterCustomer.Handle(ctx, events.ID[customer.Customer](custid), cmdCust, custid.String())
 	if err != nil {
 		panic(err)
@@ -66,8 +68,8 @@ func main() {
 		// if err != nil {
 		// 	panic(err)
 		// }
-		ordID := ids.OrderID(uuid.New())
-		ordCmd := ordercase.Post{
+		ordID := values.OrderID(uuid.New())
+		ordCmd := ordercmd.Post{
 			ID:         ordID,
 			CustomerID: custid,
 		}

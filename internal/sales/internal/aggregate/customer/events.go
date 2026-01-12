@@ -1,11 +1,9 @@
 package customer
 
-import (
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/ids"
-)
+import "github.com/alekseev-bro/dddexample/internal/sales/internal/values"
 
 type Registered struct {
-	ID           ids.CustomerID
+	ID           values.CustomerID
 	Name         string
 	Age          uint
 	Addresses    []Address
@@ -21,8 +19,8 @@ func (e Registered) Evolve(c *Customer) {
 }
 
 type OrderClosed struct {
-	CustomerID ids.CustomerID
-	OrderID    ids.OrderID
+	CustomerID values.CustomerID
+	OrderID    values.OrderID
 }
 
 func (OrderClosed) Evolve(c *Customer) {
@@ -31,8 +29,8 @@ func (OrderClosed) Evolve(c *Customer) {
 }
 
 type OrderAccepted struct {
-	CustomerID ids.CustomerID
-	OrderID    ids.OrderID
+	CustomerID values.CustomerID
+	OrderID    values.OrderID
 }
 
 func (OrderAccepted) Evolve(c *Customer) {
@@ -40,7 +38,7 @@ func (OrderAccepted) Evolve(c *Customer) {
 }
 
 type OrderRejected struct {
-	OrderID ids.OrderID
+	OrderID values.OrderID
 	Reason  string
 }
 

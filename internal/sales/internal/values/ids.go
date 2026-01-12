@@ -1,4 +1,4 @@
-package ids
+package values
 
 import (
 	"github.com/alekseev-bro/ddd/pkg/events"

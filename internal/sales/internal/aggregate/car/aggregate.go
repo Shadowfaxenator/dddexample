@@ -1,9 +1,9 @@
 package car
 
-import "github.com/alekseev-bro/dddexample/internal/sales/internal/domain/ids"
+import "github.com/alekseev-bro/dddexample/internal/sales/internal/values"
 
 type Car struct {
-	ID           ids.CarID
+	ID           values.CarID
 	Make         string
 	Model        string
 	Year         uint

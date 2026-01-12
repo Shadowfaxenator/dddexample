@@ -1,26 +1,23 @@
-package usecase
+package command
 
 import (
 	"context"
 
 	"github.com/alekseev-bro/ddd/pkg/events"
 
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/ids"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/order"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/values"
 )
 
 type Post struct {
-	ID         ids.OrderID
-	CustomerID ids.CustomerID
+	ID         values.OrderID
+	CustomerID values.CustomerID
 	Cars       []order.OrderLine
 }
 
 type postOrderHandler struct {
-	Orders events.Store[order.Order]
+	Orders events.Executer[order.Order]
 }
-
-var _ features.CommandHandler[order.Order, Post] = (*postOrderHandler)(nil)
 
 func NewPostOrderHandler(repo events.Store[order.Order]) *postOrderHandler {
 	return &postOrderHandler{Orders: repo}

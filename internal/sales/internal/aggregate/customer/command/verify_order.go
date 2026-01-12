@@ -1,25 +1,25 @@
-package usecase
+package command
 
 import (
 	"context"
 
 	"github.com/alekseev-bro/ddd/pkg/events"
 
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/ids"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/customer"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/order"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/values"
 )
 
 type verifyOrder struct {
-	OrderID ids.OrderID
+	OrderID values.OrderID
 }
 
 type verifyOrderHandler struct {
-	Customers events.Store[customer.Customer]
+	Customers events.Executer[customer.Customer]
 }
 
-func NewVerifyOrderHandler(repo events.Store[customer.Customer]) *verifyOrderHandler {
+func NewVerifyOrderHandler(repo events.Executer[customer.Customer]) *verifyOrderHandler {
 	return &verifyOrderHandler{Customers: repo}
 }
 
@@ -30,12 +30,12 @@ func (h *verifyOrderHandler) Handle(ctx context.Context, id events.ID[customer.C
 	return err
 }
 
-func NewOrderPostedHandler(handler features.CommandHandler[customer.Customer, verifyOrder]) *orderPostedHandler {
+func NewOrderPostedHandler(handler aggregate.CommandHandler[customer.Customer, verifyOrder]) *orderPostedHandler {
 	return &orderPostedHandler{handler: handler}
 }
 
 type orderPostedHandler struct {
-	handler features.CommandHandler[customer.Customer, verifyOrder]
+	handler aggregate.CommandHandler[customer.Customer, verifyOrder]
 }
 
 func (h *orderPostedHandler) Handle(ctx context.Context, eventID string, e order.Posted) error {

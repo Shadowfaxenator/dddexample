@@ -1,22 +1,21 @@
-package usecase
+package command
 
 import (
 	"context"
 
 	"github.com/alekseev-bro/ddd/pkg/events"
-
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/customer"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/order"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order"
 )
 
 type close struct {
 }
 
 type closeOrderHandler struct {
-	Orders events.Store[order.Order]
+	Orders events.Executer[order.Order]
 }
 
-func NewCloseOrderHandler(repo events.Store[order.Order]) *closeOrderHandler {
+func NewCloseOrderHandler(repo events.Executer[order.Order]) *closeOrderHandler {
 	return &closeOrderHandler{Orders: repo}
 }
 

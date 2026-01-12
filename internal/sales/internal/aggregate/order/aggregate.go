@@ -2,12 +2,12 @@ package order
 
 import (
 	"github.com/alekseev-bro/ddd/pkg/events"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/ids"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/values"
 )
 
 type Order struct {
-	ID         ids.OrderID
-	CustomerID ids.CustomerID
+	ID         values.OrderID
+	CustomerID values.CustomerID
 	Cars       []OrderLine
 	Status     RentOrderStatus
 	Deleted    bool

@@ -1,16 +1,16 @@
-package usecase
+package command
 
 import (
 	"context"
 
 	"github.com/alekseev-bro/ddd/pkg/events"
 
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/ids"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/customer"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/values"
 )
 
 type Register struct {
-	ID           ids.CustomerID
+	ID           values.CustomerID
 	Name         string
 	Age          uint
 	Addresses    []customer.Address

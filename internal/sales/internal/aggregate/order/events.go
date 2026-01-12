@@ -4,13 +4,12 @@ import (
 	"slices"
 
 	"github.com/alekseev-bro/ddd/pkg/events"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/ids"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/money"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/values"
 )
 
 type Posted struct {
-	ID         ids.OrderID
-	CustomerID ids.CustomerID
+	ID         values.OrderID
+	CustomerID values.CustomerID
 	Cars       []OrderLine
 	Status     RentOrderStatus
 	Deleted    bool
@@ -26,9 +25,9 @@ func (ce Posted) Evolve(c *Order) {
 }
 
 type CarAdded struct {
-	OrderID  ids.OrderID
-	CarID    ids.CarID
-	Price    money.Money
+	OrderID  values.OrderID
+	CarID    values.CarID
+	Price    values.Money
 	Quantity uint
 }
 
@@ -37,8 +36,8 @@ func (ce *CarAdded) Evolve(c *Order) {
 }
 
 type CarRemoved struct {
-	OrderID ids.OrderID
-	CarID   ids.CarID
+	OrderID values.OrderID
+	CarID   values.CarID
 }
 
 func (ce CarRemoved) Evolve(c *Order) {
