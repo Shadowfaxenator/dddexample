@@ -3,65 +3,67 @@ package sales
 import (
 	"context"
 
-	"github.com/alekseev-bro/ddd/pkg/events"
+	"github.com/alekseev-bro/ddd/pkg/aggregate"
 	"github.com/alekseev-bro/ddd/pkg/store/natsstore"
 	"github.com/alekseev-bro/ddd/pkg/store/natsstore/esnats"
 	"github.com/alekseev-bro/ddd/pkg/store/natsstore/snapnats"
 
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/customer"
-	customerUsecase "github.com/alekseev-bro/dddexample/internal/sales/internal/features/customer/usecase"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/order"
-	orderUsecase "github.com/alekseev-bro/dddexample/internal/sales/internal/features/order/usecase"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer"
+	customercmd "github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer/command"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order"
+	ordercmd "github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order/command"
 
 	"github.com/nats-io/nats.go/jetstream"
 )
 
-type EventHandler[T any] interface {
-	Handle(ctx context.Context, eventID string, event T) error
-}
-
 type Module struct {
-	OrderPostedHandler EventHandler[order.Posted]
-	RegisterCustomer   features.CommandHandler[customer.Customer, customerUsecase.Register]
-	PostOrder          features.CommandHandler[order.Order, orderUsecase.Post]
-	OrderStream        events.Projector[order.Order]
+	RegisterCustomer aggregate.CommandHandler[customer.Customer, customercmd.Register]
+	PostOrder        aggregate.CommandHandler[order.Order, ordercmd.Post]
+	OrderStream      aggregate.Subscriber[order.Order]
+	CustomerStream   aggregate.Subscriber[customer.Customer]
 }
 
 func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 
-	cust := events.NewStore(ctx,
+	cust := aggregate.NewStore(ctx,
 		esnats.NewEventStream[customer.Customer](ctx, js, esnats.EventStreamConfig{
 			StoreType: esnats.Memory,
 		}),
 		snapnats.NewSnapshotStore[customer.Customer](ctx, js, snapnats.SnapshotStoreConfig{
 			StoreType: snapnats.Memory,
 		}),
-		events.AggregateConfig{
+		aggregate.AggregateConfig{
 			SnapthotMsgThreshold: 5,
 		},
 
-		events.WithEvent[customer.OrderRejected](),
-		events.WithEvent[customer.OrderAccepted](),
-		events.WithEvent[customer.Registered](),
+		aggregate.WithEvent[customer.OrderRejected]("OrderRejected"),
+		aggregate.WithEvent[customer.OrderAccepted]("OrderAccepted"),
+		aggregate.WithEvent[customer.Registered]("CustomerRegistered"),
 	)
 
 	ord := natsstore.NewStore(ctx, js,
 		natsstore.NatsAggregateConfig{
-			AggregateConfig: events.AggregateConfig{
+			AggregateConfig: aggregate.AggregateConfig{
 				SnapthotMsgThreshold: 5,
 			},
 			StoreType: natsstore.Memory,
 		},
-		events.WithEvent[order.Closed](),
-		events.WithEvent[order.Posted](),
-		events.WithEvent[order.Verified](),
+		aggregate.WithEvent[order.Closed]("OrderClosed"),
+		aggregate.WithEvent[order.Posted]("OrderPosted"),
+		aggregate.WithEvent[order.Verified]("OrderVerified"),
 	)
+	aggregate.Project(ctx, ord, customercmd.NewOrderPostedHandler(
+		customercmd.NewVerifyOrderHandler(cust),
+	))
+	aggregate.Project(ctx, cust, ordercmd.NewOrderRejectedHandler(
+		ordercmd.NewCloseOrderHandler(ord),
+	))
+
 	mod := &Module{
-		PostOrder:          orderUsecase.NewPostOrderHandler(ord),
-		RegisterCustomer:   customerUsecase.NewRegisterHandler(cust),
-		OrderPostedHandler: customerUsecase.NewOrderPostedHandler(customerUsecase.NewVerifyOrderHandler(cust)),
-		OrderStream:        ord,
+		PostOrder:        ordercmd.NewPostOrderHandler(ord),
+		RegisterCustomer: customercmd.NewRegisterHandler(cust),
+		OrderStream:      ord,
+		CustomerStream:   cust,
 	}
 
 	return mod

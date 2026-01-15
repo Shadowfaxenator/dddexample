@@ -1,9 +1,9 @@
 package car
 
-import "github.com/alekseev-bro/dddexample/internal/sales/internal/domain/ids"
+import "github.com/alekseev-bro/ddd/pkg/aggregate"
 
 type Car struct {
-	ID           ids.CarID
+	aggregate.Aggregate
 	Make         string
 	Model        string
 	Year         uint

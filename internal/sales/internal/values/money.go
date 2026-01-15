@@ -1,4 +1,4 @@
-package money
+package values
 
 type Money struct {
 	Currency  string

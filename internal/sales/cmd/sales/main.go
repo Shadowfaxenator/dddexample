@@ -2,20 +2,19 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"os"
 	"os/signal"
 
-	"github.com/alekseev-bro/ddd/pkg/events"
+	"github.com/alekseev-bro/ddd/pkg/aggregate"
 	"github.com/alekseev-bro/dddexample/internal/sales"
 
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/domain/ids"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/customer"
-	customercase "github.com/alekseev-bro/dddexample/internal/sales/internal/features/customer/usecase"
-	"github.com/alekseev-bro/dddexample/internal/sales/internal/features/order"
-	ordercase "github.com/alekseev-bro/dddexample/internal/sales/internal/features/order/usecase"
-	"github.com/google/uuid"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer"
+	customercmd "github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer/command"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order"
+	ordercmd "github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order/command"
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
@@ -25,7 +24,7 @@ func main() {
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer cancel()
-	//	slog.SetLogLoggerLevel(slog.LevelWarn)
+	slog.SetLogLoggerLevel(slog.LevelInfo)
 
 	nc, err := nats.Connect(nats.DefaultURL)
 	if err != nil {
@@ -38,15 +37,11 @@ func main() {
 	}
 
 	s := sales.NewModule(ctx, js)
-	events.ProjectEvent(ctx, s.OrderPostedHandler)
 	time.Sleep(time.Second)
-	custid := ids.CustomerID(uuid.New())
-	cmdCust := customercase.Register{
-		ID:   custid,
-		Name: "Joe",
-		Age:  16,
-	}
-	err = s.RegisterCustomer.Handle(ctx, events.ID[customer.Customer](custid), cmdCust, custid.String())
+	c := customer.New("Joe", 16, nil)
+	cmdCust := customercmd.Register{Customer: c}
+	ctxIdemp := aggregate.ContextWithIdempotancyKey(ctx, c.ID.String())
+	_, err = s.RegisterCustomer.Handle(ctxIdemp, cmdCust)
 	if err != nil {
 		panic(err)
 	}
@@ -66,16 +61,18 @@ func main() {
 		// if err != nil {
 		// 	panic(err)
 		// }
-		ordID := ids.OrderID(uuid.New())
-		ordCmd := ordercase.Post{
-			ID:         ordID,
-			CustomerID: custid,
+		o := order.New(aggregate.NewID(), c.ID, nil)
+		ordCmd := ordercmd.Post{
+			Order: o,
 		}
-		err = s.PostOrder.Handle(ctx, events.ID[order.Order](ordID), ordCmd, ordID.String())
+		ctxIdemp := aggregate.ContextWithIdempotancyKey(ctx, o.ID.String())
+
+		_, err = s.PostOrder.Handle(ctxIdemp, ordCmd)
 		if err != nil {
 			panic(err)
 		}
 	}
+
 	<-ctx.Done()
 
 }

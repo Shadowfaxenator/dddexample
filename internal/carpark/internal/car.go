@@ -1,6 +1,6 @@
 package carpark
 
-import "github.com/alekseev-bro/ddd/pkg/events"
+import "github.com/alekseev-bro/ddd/pkg/aggregate"
 
 // import (
 // 	"encoding/json"
@@ -35,7 +35,7 @@ const (
 )
 
 type Car struct {
-	events.ID[Car]
+	aggregate.ID
 	VIN string
 	CarModel
 	RentState
