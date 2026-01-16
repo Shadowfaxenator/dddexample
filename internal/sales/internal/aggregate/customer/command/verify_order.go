@@ -14,34 +14,40 @@ type VerifyOrder struct {
 	OrderID    aggregate.ID
 }
 
-func (cmd VerifyOrder) Execute(c *customer.Customer) (aggregate.Events[customer.Customer], error) {
-	return c.VerifyOrder(cmd.OrderID)
+type CustomerUpdater interface {
+	Update(ctx context.Context, id aggregate.ID, modify func(state *customer.Customer) (aggregate.Events[customer.Customer], error)) ([]*aggregate.Event[customer.Customer], error)
 }
 
 type verifyOrderHandler struct {
-	Customers aggregate.Updater[customer.Customer, *customer.Customer]
+	Customers CustomerUpdater
 }
 
-func NewVerifyOrderHandler(repo aggregate.Updater[customer.Customer, *customer.Customer]) *verifyOrderHandler {
+func NewVerifyOrderHandler(repo CustomerUpdater) *verifyOrderHandler {
 	return &verifyOrderHandler{Customers: repo}
 }
 
 func (h *verifyOrderHandler) Handle(ctx context.Context, cmd VerifyOrder) ([]*aggregate.Event[customer.Customer], error) {
+
 	return h.Customers.Update(ctx, cmd.OfCustomer, func(state *customer.Customer) (aggregate.Events[customer.Customer], error) {
 		return state.VerifyOrder(cmd.OrderID)
 	})
 }
 
-func NewOrderPostedHandler(handler aggregate.CommandHandler[customer.Customer, VerifyOrder]) *orderPostedHandler {
+type VerifyOrderHandler interface {
+	Handle(ctx context.Context, cmd VerifyOrder) ([]*aggregate.Event[customer.Customer], error)
+}
+
+func NewOrderPostedHandler(handler VerifyOrderHandler) *orderPostedHandler {
 	return &orderPostedHandler{handler: handler}
 }
 
 type orderPostedHandler struct {
-	handler aggregate.CommandHandler[customer.Customer, VerifyOrder]
+	handler VerifyOrderHandler
 }
 
-func (h *orderPostedHandler) HandleEvent(ctx context.Context, e order.Posted) error {
+func (h *orderPostedHandler) HandleEvent(ctx context.Context, e *order.Posted) error {
 	cmd := VerifyOrder{OfCustomer: e.CustomerID, OrderID: e.OrderID}
 	_, err := h.handler.Handle(ctx, cmd)
+
 	return err
 }

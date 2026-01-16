@@ -12,15 +12,15 @@ type Close struct {
 	OrderID aggregate.ID
 }
 
-func (cmd Close) Execute(o *order.Order) (aggregate.Events[order.Order], error) {
-	return o.Close()
-}
-
 type closeOrderHandler struct {
-	Orders aggregate.Updater[order.Order, *order.Order]
+	Orders OrderUpdater
 }
 
-func NewCloseOrderHandler(repo aggregate.Updater[order.Order, *order.Order]) *closeOrderHandler {
+type OrderUpdater interface {
+	Update(ctx context.Context, id aggregate.ID, modify func(state *order.Order) (aggregate.Events[order.Order], error)) ([]*aggregate.Event[order.Order], error)
+}
+
+func NewCloseOrderHandler(repo OrderUpdater) *closeOrderHandler {
 	return &closeOrderHandler{Orders: repo}
 }
 
@@ -40,8 +40,9 @@ func NewOrderRejectedHandler(h aggregate.CommandHandler[order.Order, Close]) *or
 	return &orderRejectedHandler{CloseOrderHandler: h}
 }
 
-func (h *orderRejectedHandler) HandleEvent(ctx context.Context, e customer.OrderRejected) error {
+func (h *orderRejectedHandler) HandleEvent(ctx context.Context, e *customer.OrderRejected) error {
 	cmd := Close{OrderID: e.OrderID}
 	_, err := h.CloseOrderHandler.Handle(ctx, cmd)
+
 	return err
 }
