@@ -14,7 +14,7 @@ type Posted struct {
 	Status     RentOrderStatus
 }
 
-func (ce Posted) Evolve(c *Order) {
+func (ce *Posted) Evolve(c *Order) {
 	c.Exists = true
 	c.ID = ce.OrderID
 	c.Cars = ce.Cars
@@ -39,7 +39,7 @@ type CarRemoved struct {
 	CarID   aggregate.ID
 }
 
-func (ce CarRemoved) Evolve(c *Order) {
+func (ce *CarRemoved) Evolve(c *Order) {
 	c.Cars = slices.DeleteFunc(c.Cars, func(l OrderLine) bool { return l.CarID == ce.CarID })
 }
 
@@ -47,12 +47,12 @@ type Verified struct {
 	OrderID aggregate.ID
 }
 
-func (ce Verified) Evolve(c *Order) {
+func (ce *Verified) Evolve(c *Order) {
 	c.Status = StatusValidForProcessing
 }
 
 type Closed struct{}
 
-func (ce Closed) Evolve(c *Order) {
+func (ce *Closed) Evolve(c *Order) {
 	c.Status = StatusClosed
 }

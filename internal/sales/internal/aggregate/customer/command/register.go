@@ -12,21 +12,21 @@ type Register struct {
 	Customer *customer.Customer
 }
 
-func (cmd Register) Execute(c *customer.Customer) (aggregate.Events[customer.Customer], error) {
-	return cmd.Customer.Register()
-}
-
 type registerHandler struct {
-	Customers aggregate.Updater[customer.Customer, *customer.Customer]
+	Customers RegisterHandler
 }
 
-func NewRegisterHandler(repo aggregate.Updater[customer.Customer, *customer.Customer]) *registerHandler {
+type RegisterHandler interface {
+	Update(ctx context.Context, id aggregate.ID, modify func(state *customer.Customer) (aggregate.Events[customer.Customer], error)) ([]*aggregate.Event[customer.Customer], error)
+}
+
+func NewRegisterHandler(repo RegisterHandler) *registerHandler {
 	return &registerHandler{Customers: repo}
 }
 
 func (h *registerHandler) Handle(ctx context.Context, cmd Register) ([]*aggregate.Event[customer.Customer], error) {
 
 	return h.Customers.Update(ctx, cmd.Customer.ID, func(state *customer.Customer) (aggregate.Events[customer.Customer], error) {
-		return state.Register()
+		return state.Register(cmd.Customer)
 	})
 }

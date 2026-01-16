@@ -12,10 +12,10 @@ type Post struct {
 }
 
 type postOrderHandler struct {
-	Orders aggregate.Updater[order.Order, *order.Order]
+	Orders OrderUpdater
 }
 
-func NewPostOrderHandler(repo aggregate.Updater[order.Order, *order.Order]) *postOrderHandler {
+func NewPostOrderHandler(repo OrderUpdater) *postOrderHandler {
 	return &postOrderHandler{Orders: repo}
 }
 

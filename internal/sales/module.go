@@ -2,11 +2,11 @@ package sales
 
 import (
 	"context"
+	"time"
 
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
-	"github.com/alekseev-bro/ddd/pkg/store/natsstore"
-	"github.com/alekseev-bro/ddd/pkg/store/natsstore/esnats"
-	"github.com/alekseev-bro/ddd/pkg/store/natsstore/snapnats"
+
+	"github.com/alekseev-bro/ddd/pkg/natsstore"
 
 	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer"
 	customercmd "github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer/command"
@@ -17,40 +17,28 @@ import (
 )
 
 type Module struct {
-	RegisterCustomer aggregate.CommandHandler[customer.Customer, customercmd.Register]
-	PostOrder        aggregate.CommandHandler[order.Order, ordercmd.Post]
+	RegisterCustomer customercmd.CustomerRegisterHandler
+	PostOrder        ordercmd.OrderpostHandler
 	OrderStream      aggregate.Subscriber[order.Order]
 	CustomerStream   aggregate.Subscriber[customer.Customer]
 }
 
 func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 
-	cust := aggregate.NewStore(ctx,
-		esnats.NewEventStream[customer.Customer](ctx, js, esnats.EventStreamConfig{
-			StoreType: esnats.Memory,
-		}),
-		snapnats.NewSnapshotStore[customer.Customer](ctx, js, snapnats.SnapshotStoreConfig{
-			StoreType: snapnats.Memory,
-		}),
-		aggregate.AggregateConfig{
-			SnapthotMsgThreshold: 5,
-		},
-
-		aggregate.WithEvent[customer.OrderRejected]("OrderRejected"),
-		aggregate.WithEvent[customer.OrderAccepted]("OrderAccepted"),
-		aggregate.WithEvent[customer.Registered]("CustomerRegistered"),
+	cust := natsstore.NewStore(ctx, js,
+		natsstore.WithInMemory[customer.Customer](),
+		natsstore.WithSnapshot[customer.Customer](5, time.Second),
+		natsstore.WithEvent[customer.OrderRejected, customer.Customer]("OrderRejected"),
+		natsstore.WithEvent[customer.OrderAccepted, customer.Customer]("OrderAccepted"),
+		natsstore.WithEvent[customer.Registered, customer.Customer]("CustomerRegistered"),
 	)
 
 	ord := natsstore.NewStore(ctx, js,
-		natsstore.NatsAggregateConfig{
-			AggregateConfig: aggregate.AggregateConfig{
-				SnapthotMsgThreshold: 5,
-			},
-			StoreType: natsstore.Memory,
-		},
-		aggregate.WithEvent[order.Closed]("OrderClosed"),
-		aggregate.WithEvent[order.Posted]("OrderPosted"),
-		aggregate.WithEvent[order.Verified]("OrderVerified"),
+		natsstore.WithInMemory[order.Order](),
+		natsstore.WithSnapshot[order.Order](5, time.Second),
+		natsstore.WithEvent[order.Closed, order.Order]("OrderClosed"),
+		natsstore.WithEvent[order.Posted, order.Order]("OrderPosted"),
+		natsstore.WithEvent[order.Verified, order.Order]("OrderVerified"),
 	)
 	aggregate.Project(ctx, ord, customercmd.NewOrderPostedHandler(
 		customercmd.NewVerifyOrderHandler(cust),
