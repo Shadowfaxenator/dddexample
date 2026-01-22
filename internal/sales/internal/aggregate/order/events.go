@@ -15,7 +15,7 @@ type Posted struct {
 }
 
 func (ce *Posted) Evolve(c *Order) {
-	c.Exists = true
+
 	c.ID = ce.OrderID
 	c.Cars = ce.Cars
 	c.CustomerID = ce.CustomerID

@@ -1,30 +1,28 @@
 package order
 
 import (
-	"errors"
-
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
 )
 
 type Order struct {
-	aggregate.Aggregate
+	ID         aggregate.ID
 	CustomerID aggregate.ID
 	Cars       []OrderLine
 	Status     RentOrderStatus
 }
 
-func New(id, customerID aggregate.ID, cars []OrderLine) *Order {
+func New(customerID aggregate.ID, cars []OrderLine) *Order {
 	o := &Order{
+		ID:         aggregate.NewID(),
 		CustomerID: customerID,
 		Cars:       cars,
 	}
-	o.ID = id
 	return o
 }
 
 func (o *Order) Post(ord *Order) (aggregate.Events[Order], error) {
-	if o.Exists {
-		return nil, errors.New("order exists")
+	if o.Status != StatusNew {
+		return nil, aggregate.ErrAggregateAlreadyExists
 	}
 	return aggregate.NewEvents(&Posted{
 		OrderID:    ord.ID,

@@ -52,27 +52,33 @@ func main() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	for range 1 {
+	for {
+		select {
+		case <-ctx.Done():
+			time.Sleep(time.Second * 3)
+			return
 
-		// ordid := s.Order.NewID()
-		// idempo := aggregate.NewUniqueCommandIdempKey[*sales.CreateOrder](ordid)
+		case <-time.After(time.Second * 2):
+			// ordid := s.Order.NewID()
+			// idempo := aggregate.NewUniqueCommandIdempKey[*sales.CreateOrder](ordid)
 
-		// _, err = s.Order.Execute(ctx, idempo, &sales.CreateOrder{OrderID: ordid, CustID: cusid})
-		// if err != nil {
-		// 	panic(err)
-		// }
-		o := order.New(aggregate.NewID(), c.ID, nil)
-		ordCmd := ordercmd.Post{
-			Order: o,
-		}
-		ctxIdemp := aggregate.ContextWithIdempotancyKey(ctx, o.ID.String())
+			// _, err = s.Order.Execute(ctx, idempo, &sales.CreateOrder{OrderID: ordid, CustID: cusid})
+			// if err != nil {
+			// 	panic(err)
+			// }
+			o := order.New(c.ID, nil)
+			ordCmd := ordercmd.Post{
+				Order: o,
+			}
+			ctxIdemp := aggregate.ContextWithIdempotancyKey(ctx, o.ID.String())
 
-		_, err = s.PostOrder.Handle(ctxIdemp, ordCmd)
-		if err != nil {
-			panic(err)
+			_, err = s.PostOrder.Handle(ctxIdemp, ordCmd)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 
-	<-ctx.Done()
+	//	<-ctx.Done()
 
 }

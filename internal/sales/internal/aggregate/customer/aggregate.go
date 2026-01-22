@@ -7,16 +7,17 @@ import (
 )
 
 type Customer struct {
-	aggregate.Aggregate
+	ID           aggregate.ID
 	Name         string
 	Age          uint
 	Addresses    []Address
 	ActiveOrders uint
+	Exists       bool
 }
 
 func New(name string, age uint, addresses []Address) *Customer {
 	return &Customer{
-		Aggregate: aggregate.Aggregate{ID: aggregate.NewID()},
+		ID:        aggregate.NewID(),
 		Name:      name,
 		Age:       age,
 		Addresses: addresses,
@@ -41,6 +42,7 @@ func (c *Customer) Register(cust *Customer) (aggregate.Events[Customer], error) 
 var ErrInvalidAge = errors.New("invalid age")
 
 func (c *Customer) VerifyOrder(o aggregate.ID) (aggregate.Events[Customer], error) {
+
 	if c.Age < 18 {
 		return aggregate.NewEvents(&OrderRejected{OrderID: o, Reason: "too young"}), ErrInvalidAge
 	}

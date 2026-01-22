@@ -2,6 +2,7 @@ package sales
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
@@ -24,7 +25,7 @@ type Module struct {
 }
 
 func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
-
+	var cons []aggregate.Drainer
 	cust := natsstore.NewStore(ctx, js,
 		natsstore.WithInMemory[customer.Customer](),
 		natsstore.WithSnapshot[customer.Customer](5, time.Second),
@@ -40,12 +41,24 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 		natsstore.WithEvent[order.Posted, order.Order]("OrderPosted"),
 		natsstore.WithEvent[order.Verified, order.Order]("OrderVerified"),
 	)
-	aggregate.Project(ctx, ord, customercmd.NewOrderPostedHandler(
+
+	d, err := aggregate.Project(ctx, ord, customercmd.NewOrderPostedHandler(
 		customercmd.NewVerifyOrderHandler(cust),
 	))
-	aggregate.Project(ctx, cust, ordercmd.NewOrderRejectedHandler(
+	if err != nil {
+		slog.Error("subscription create consumer", "error", err)
+		panic(err)
+	}
+	cons = append(cons, d)
+
+	d, err = aggregate.Project(ctx, cust, ordercmd.NewOrderRejectedHandler(
 		ordercmd.NewCloseOrderHandler(ord),
 	))
+	if err != nil {
+		slog.Error("subscription create consumer", "error", err)
+		panic(err)
+	}
+	cons = append(cons, d)
 
 	mod := &Module{
 		PostOrder:        ordercmd.NewPostOrderHandler(ord),
@@ -53,6 +66,16 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 		OrderStream:      ord,
 		CustomerStream:   cust,
 	}
+
+	go func() {
+		<-ctx.Done()
+		for _, c := range cons {
+			if err := c.Drain(); err != nil {
+				slog.Error("subscription drain", "error", err)
+			}
+		}
+		slog.Info("all drainded")
+	}()
 
 	return mod
 }

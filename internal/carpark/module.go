@@ -2,12 +2,10 @@ package carpark
 
 import (
 	"context"
-
-	"github.com/alekseev-bro/ddd/pkg/aggregate"
 )
 
 type Module struct {
-	aggregate.Aggregate
+
 	// ...
 }
 
