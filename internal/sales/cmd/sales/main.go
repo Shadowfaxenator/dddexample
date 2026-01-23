@@ -26,7 +26,7 @@ func main() {
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer cancel()
-	slog.SetLogLoggerLevel(slog.LevelError)
+	slog.SetLogLoggerLevel(slog.LevelInfo)
 
 	nc, err := nats.Connect(nats.DefaultURL)
 	if err != nil {
@@ -48,12 +48,6 @@ func main() {
 		panic(err)
 	}
 
-	//	idempc := aggregate.NewUniqueCommandIdempKey[*sales.CreateCustomer](cusid)
-
-	// _, err = s.Customer.Execute(ctx, custid.String(), &sales.CreateCustomer{Customer: sales.Customer{ID: cusid, Name: "John", Age: 20}})
-	// if err != nil {
-	// 	panic(err)
-	// }
 	for range 10 {
 
 		o := order.New(c.ID, order.OrderLines{
