@@ -19,7 +19,7 @@ func NewPostOrderHandler(repo OrderUpdater) *postOrderHandler {
 	return &postOrderHandler{Orders: repo}
 }
 
-func (h *postOrderHandler) Handle(ctx context.Context, cmd Post) ([]*aggregate.Event[order.Order], error) {
+func (h *postOrderHandler) HandleCommand(ctx context.Context, cmd Post) ([]*aggregate.Event[order.Order], error) {
 
 	return h.Orders.Update(ctx, cmd.Order.ID, func(state *order.Order) (aggregate.Events[order.Order], error) {
 		return state.Post(cmd.Order)

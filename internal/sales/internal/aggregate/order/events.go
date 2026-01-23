@@ -10,16 +10,17 @@ import (
 type Posted struct {
 	OrderID    aggregate.ID
 	CustomerID aggregate.ID
-	Cars       []OrderLine
+	Cars       OrderLines
 	Status     RentOrderStatus
+	Total      values.Money
 }
 
 func (ce *Posted) Evolve(c *Order) {
-
 	c.ID = ce.OrderID
 	c.Cars = ce.Cars
 	c.CustomerID = ce.CustomerID
 	c.Status = ce.Status
+	c.Total = ce.Total
 
 }
 

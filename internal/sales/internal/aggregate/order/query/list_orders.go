@@ -2,26 +2,39 @@ package query
 
 import (
 	"context"
-	"time"
 
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer/query"
 	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order"
+
 	"github.com/alekseev-bro/dddexample/internal/sales/internal/values"
 )
 
-type OrderListProjection struct {
-	ID        aggregate.ID
-	Total     values.Money
-	CreatedAt time.Time
-	UserName  string
+type Order struct {
+	ID       aggregate.ID
+	UserID   aggregate.ID
+	Total    values.Money
+	UserName string
 }
 
 type AllLister interface {
-	ListAll() ([]OrderListProjection, error)
+	ListAll() ([]Order, error)
+}
+
+type CustomerGetter interface {
+	GetCustomer(id aggregate.ID) (*query.Customer, bool)
 }
 
 type OrderListProjector struct {
-	Orders *MemOrders
+	Orders    *MemOrders
+	Customers CustomerGetter
+}
+
+func NewOrderListProjector(customers CustomerGetter, orders *MemOrders) *OrderListProjector {
+	return &OrderListProjector{
+		Orders:    orders,
+		Customers: customers,
+	}
 }
 
 type OrderListQueryHandler struct {
@@ -29,22 +42,42 @@ type OrderListQueryHandler struct {
 }
 
 type MemOrders struct {
-	Orders []OrderListProjection
+	Orders []Order
 }
 
-func (m *MemOrders) ListAll() ([]OrderListProjection, error) {
+func (m *MemOrders) ListAll() ([]Order, error) {
 	return m.Orders, nil
+}
+
+func (m *MemOrders) AddOrder(order Order) {
+
+	m.Orders = append(m.Orders, order)
 }
 
 func NewMemOrders() *MemOrders {
 	return &MemOrders{
-		Orders: make([]OrderListProjection, 0),
+		Orders: make([]Order, 0),
 	}
 }
 
-func (h *OrderListProjector) Handle(ctx context.Context, eventID string, event any) error {
-	switch event.(type) {
-	case order.Posted:
+func (h *OrderListProjector) HandleEvents(ctx context.Context, event aggregate.Evolver[order.Order]) error {
+	switch ev := event.(type) {
+	case *order.Posted:
+		if cust, ok := h.Customers.GetCustomer(ev.CustomerID); ok {
+			h.Orders.AddOrder(Order{
+				ID:       ev.OrderID,
+				Total:    ev.Total,
+				UserID:   ev.CustomerID,
+				UserName: cust.Name,
+			})
+		} else {
+			h.Orders.AddOrder(Order{
+				ID:       ev.OrderID,
+				Total:    ev.Total,
+				UserID:   ev.CustomerID,
+				UserName: "NaN",
+			})
+		}
 
 	}
 	return nil

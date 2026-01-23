@@ -24,7 +24,7 @@ func NewRegisterHandler(repo RegisterHandler) *registerHandler {
 	return &registerHandler{Customers: repo}
 }
 
-func (h *registerHandler) Handle(ctx context.Context, cmd Register) ([]*aggregate.Event[customer.Customer], error) {
+func (h *registerHandler) HandleCommand(ctx context.Context, cmd Register) ([]*aggregate.Event[customer.Customer], error) {
 
 	return h.Customers.Update(ctx, cmd.Customer.ID, func(state *customer.Customer) (aggregate.Events[customer.Customer], error) {
 		return state.Register(cmd.Customer)

@@ -26,7 +26,7 @@ func NewVerifyOrderHandler(repo CustomerUpdater) *verifyOrderHandler {
 	return &verifyOrderHandler{Customers: repo}
 }
 
-func (h *verifyOrderHandler) Handle(ctx context.Context, cmd VerifyOrder) ([]*aggregate.Event[customer.Customer], error) {
+func (h *verifyOrderHandler) HandleCommand(ctx context.Context, cmd VerifyOrder) ([]*aggregate.Event[customer.Customer], error) {
 
 	return h.Customers.Update(ctx, cmd.OfCustomer, func(state *customer.Customer) (aggregate.Events[customer.Customer], error) {
 		return state.VerifyOrder(cmd.OrderID)
@@ -34,7 +34,7 @@ func (h *verifyOrderHandler) Handle(ctx context.Context, cmd VerifyOrder) ([]*ag
 }
 
 type VerifyOrderHandler interface {
-	Handle(ctx context.Context, cmd VerifyOrder) ([]*aggregate.Event[customer.Customer], error)
+	HandleCommand(ctx context.Context, cmd VerifyOrder) ([]*aggregate.Event[customer.Customer], error)
 }
 
 func NewOrderPostedHandler(handler VerifyOrderHandler) *orderPostedHandler {
@@ -47,7 +47,7 @@ type orderPostedHandler struct {
 
 func (h *orderPostedHandler) HandleEvent(ctx context.Context, e *order.Posted) error {
 	cmd := VerifyOrder{OfCustomer: e.CustomerID, OrderID: e.OrderID}
-	_, err := h.handler.Handle(ctx, cmd)
+	_, err := h.handler.HandleCommand(ctx, cmd)
 
 	return err
 }

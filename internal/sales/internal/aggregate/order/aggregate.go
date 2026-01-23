@@ -2,20 +2,28 @@ package order
 
 import (
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
+	"github.com/alekseev-bro/dddexample/internal/sales/internal/values"
 )
 
 type Order struct {
 	ID         aggregate.ID
 	CustomerID aggregate.ID
-	Cars       []OrderLine
+	Cars       OrderLines
+	Total      values.Money
 	Status     RentOrderStatus
 }
 
-func New(customerID aggregate.ID, cars []OrderLine) *Order {
+func New(customerID aggregate.ID, cars OrderLines) *Order {
+	total, err := cars.Total()
+	if err != nil {
+		panic(err)
+	}
+
 	o := &Order{
 		ID:         aggregate.NewID(),
 		CustomerID: customerID,
 		Cars:       cars,
+		Total:      total,
 	}
 	return o
 }
@@ -29,6 +37,7 @@ func (o *Order) Post(ord *Order) (aggregate.Events[Order], error) {
 		CustomerID: ord.CustomerID,
 		Cars:       ord.Cars,
 		Status:     ord.Status,
+		Total:      ord.Total,
 	}), nil
 
 }

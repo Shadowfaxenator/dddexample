@@ -11,8 +11,10 @@ import (
 
 	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer"
 	customercmd "github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer/command"
+	custquery "github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer/query"
 	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order"
 	ordercmd "github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order/command"
+	orderquery "github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order/query"
 
 	"github.com/nats-io/nats.go/jetstream"
 )
@@ -22,6 +24,7 @@ type Module struct {
 	PostOrder        ordercmd.OrderpostHandler
 	OrderStream      aggregate.Subscriber[order.Order]
 	CustomerStream   aggregate.Subscriber[customer.Customer]
+	OrderProjection  orderquery.AllLister
 }
 
 func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
@@ -59,12 +62,28 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 		panic(err)
 	}
 	cons = append(cons, d)
+	custproj := custquery.NewCustomerProjection()
+	ordproj := orderquery.NewMemOrders()
+	d, err = ord.Subscribe(ctx, orderquery.NewOrderListProjector(custproj, ordproj))
+	if err != nil {
+		slog.Error("subscription create consumer", "error", err)
+		panic(err)
+	}
+	cons = append(cons, d)
+
+	d, err = cust.Subscribe(ctx, custquery.NewCustomerListProjector(custproj))
+	if err != nil {
+		slog.Error("subscription create consumer", "error", err)
+		panic(err)
+	}
+	cons = append(cons, d)
 
 	mod := &Module{
 		PostOrder:        ordercmd.NewPostOrderHandler(ord),
 		RegisterCustomer: customercmd.NewRegisterHandler(cust),
 		OrderStream:      ord,
 		CustomerStream:   cust,
+		OrderProjection:  ordproj,
 	}
 
 	go func() {

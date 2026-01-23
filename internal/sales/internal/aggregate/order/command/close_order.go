@@ -24,7 +24,7 @@ func NewCloseOrderHandler(repo OrderUpdater) *closeOrderHandler {
 	return &closeOrderHandler{Orders: repo}
 }
 
-func (h *closeOrderHandler) Handle(ctx context.Context, cmd Close) ([]*aggregate.Event[order.Order], error) {
+func (h *closeOrderHandler) HandleCommand(ctx context.Context, cmd Close) ([]*aggregate.Event[order.Order], error) {
 
 	return h.Orders.Update(ctx, cmd.OrderID, func(state *order.Order) (aggregate.Events[order.Order], error) {
 		return state.Close()
@@ -42,7 +42,7 @@ func NewOrderRejectedHandler(h aggregate.CommandHandler[order.Order, Close]) *or
 
 func (h *orderRejectedHandler) HandleEvent(ctx context.Context, e *customer.OrderRejected) error {
 	cmd := Close{OrderID: e.OrderID}
-	_, err := h.CloseOrderHandler.Handle(ctx, cmd)
+	_, err := h.CloseOrderHandler.HandleCommand(ctx, cmd)
 
 	return err
 }
