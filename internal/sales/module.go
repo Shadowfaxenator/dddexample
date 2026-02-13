@@ -5,11 +5,13 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/alekseev-bro/ddd/pkg/drivers/stream/esnats"
 	"github.com/alekseev-bro/ddd/pkg/eventstore"
 	"github.com/alekseev-bro/ddd/pkg/stream"
 
 	"github.com/alekseev-bro/ddd/pkg/natsstore"
 
+	"github.com/alekseev-bro/dddexample/contracts/v1/carpark"
 	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer"
 	customercmd "github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer/command"
 	custquery "github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer/query"
@@ -89,6 +91,13 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 		panic(err)
 	}
 	cons = append(cons, d)
+	dr := esnats.NewDriver(ctx, js, "car", esnats.EventStreamConfig{
+		StoreType: esnats.Memory,
+	})
+
+	carStream := stream.New(ctx, dr, stream.WithEvent[carpark.CarArrived]("CarArrived"))
+	_ = carStream
+	// carStream.Subscribe(ctx, nil)
 
 	mod := &Module{
 		PostOrder:        ordercmd.NewPostOrderHandler(ord),

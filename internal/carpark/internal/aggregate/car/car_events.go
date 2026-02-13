@@ -9,8 +9,8 @@ type Arrived struct {
 	Car *Car
 }
 
-func (ca *Arrived) ToArrivedV1() *carpark.Arrived {
-	return &carpark.Arrived{
+func (ca *Arrived) ToArrivedV1() *carpark.CarArrived {
+	return &carpark.CarArrived{
 		Car: ca.Car.ToCarV1(),
 	}
 }

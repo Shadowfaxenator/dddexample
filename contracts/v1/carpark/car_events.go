@@ -1,5 +1,5 @@
 package carpark
 
-type Arrived struct {
+type CarArrived struct {
 	Car *Car
 }

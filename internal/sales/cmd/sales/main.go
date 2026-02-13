@@ -75,6 +75,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("Projection Example (OrderList in memory) :")
 	for _, o := range l {
 		fmt.Printf("order: %+v\n", o)
 	}

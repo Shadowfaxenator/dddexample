@@ -25,7 +25,7 @@ func (s *CarsProjStore) ListCars() ([]*Car, error) {
 }
 
 type Car struct {
-	aggregate.ID
+	ID  aggregate.ID
 	VIN string
 	CarModel
 	RentState
@@ -72,7 +72,7 @@ type carListProjector struct {
 
 func (p *carListProjector) Project(event any) error {
 	switch ev := event.(type) {
-	case *carpark.Arrived:
+	case *carpark.CarArrived:
 		car := &Car{
 			ID:  ev.Car.ID,
 			VIN: ev.Car.VIN,

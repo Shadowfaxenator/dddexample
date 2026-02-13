@@ -2,7 +2,6 @@ package customer
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
 	"github.com/alekseev-bro/ddd/pkg/eventstore"
@@ -19,7 +18,7 @@ type Customer struct {
 
 func New(name string, age uint, addresses []Address) *Customer {
 	id := aggregate.NewID()
-	fmt.Printf("id_customer: %v\n", id)
+
 	return &Customer{
 		ID:        id,
 		Name:      name,

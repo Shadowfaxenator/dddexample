@@ -1,8 +1,6 @@
 package order
 
 import (
-	"fmt"
-
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
 	"github.com/alekseev-bro/ddd/pkg/eventstore"
 	"github.com/alekseev-bro/dddexample/internal/sales/internal/values"
@@ -22,7 +20,7 @@ func New(customerID aggregate.ID, cars OrderLines) *Order {
 		panic(err)
 	}
 	id := aggregate.NewID()
-	fmt.Printf("id_order: %v\n", id)
+
 	o := &Order{
 		ID:         id,
 		CustomerID: customerID,
