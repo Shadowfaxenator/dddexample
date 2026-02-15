@@ -38,7 +38,7 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 	var cons []stream.Drainer
 	cust := natsstore.New(ctx, js,
 		natsstore.WithInMemory[customer.Customer](),
-		natsstore.WithSnapshot[customer.Customer](5, time.Second),
+		natsstore.WithSnapshot[customer.Customer](5, time.Second, 5*time.Second),
 		natsstore.WithEvent[customer.OrderRejected, customer.Customer]("OrderRejected"),
 		natsstore.WithEvent[customer.OrderAccepted, customer.Customer]("OrderAccepted"),
 		natsstore.WithEvent[customer.Registered, customer.Customer]("CustomerRegistered"),
@@ -46,7 +46,7 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 
 	ord := natsstore.New(ctx, js,
 		natsstore.WithInMemory[order.Order](),
-		natsstore.WithSnapshot[order.Order](5, time.Second),
+		natsstore.WithSnapshot[order.Order](5, time.Second, 5*time.Second),
 		natsstore.WithEvent[order.Closed, order.Order]("OrderClosed"),
 		natsstore.WithEvent[order.Posted, order.Order]("OrderPosted"),
 		natsstore.WithEvent[order.Verified, order.Order]("OrderVerified"),
@@ -91,7 +91,7 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 		panic(err)
 	}
 	cons = append(cons, d)
-	dr := esnats.NewDriver(ctx, js, "car", esnats.EventStreamConfig{
+	dr, err := esnats.NewDriver(ctx, js, "car", esnats.EventStreamConfig{
 		StoreType: esnats.Memory,
 	})
 
