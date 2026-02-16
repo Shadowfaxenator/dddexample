@@ -39,9 +39,9 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 	cust, err := na.New(ctx, js,
 		na.WithInMemory[customer.Customer](),
 		na.WithSnapshotEventCount[customer.Customer](5),
-		na.WithEvent[customer.OrderRejected, customer.Customer]("OrderRejected"),
-		na.WithEvent[customer.OrderAccepted, customer.Customer]("OrderAccepted"),
-		na.WithEvent[customer.Registered, customer.Customer]("CustomerRegistered"),
+		na.WithEvent[customer.OrderRejected, customer.Customer](),
+		na.WithEvent[customer.OrderAccepted, customer.Customer](),
+		na.WithEvent[customer.Registered, customer.Customer](),
 	)
 
 	if err != nil {
@@ -52,9 +52,9 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 	ord, err := na.New(ctx, js,
 		na.WithInMemory[order.Order](),
 		na.WithSnapshotEventCount[order.Order](5),
-		na.WithEvent[order.Closed, order.Order]("OrderClosed"),
-		na.WithEvent[order.Posted, order.Order]("OrderPosted"),
-		na.WithEvent[order.Verified, order.Order]("OrderVerified"),
+		na.WithEvent[order.Closed, order.Order](),
+		na.WithEvent[order.Posted, order.Order](),
+		na.WithEvent[order.Verified, order.Order](),
 	)
 	if err != nil {
 		slog.Error(err.Error())
@@ -104,7 +104,7 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	carStream, err := stream.New(dr, stream.WithEvent[carpark.CarArrived]("CarArrived"))
+	carStream, err := stream.New(dr, stream.WithEvent[carpark.CarArrived]())
 	_ = carStream
 	// carStream.Subscribe(ctx, nil)
 

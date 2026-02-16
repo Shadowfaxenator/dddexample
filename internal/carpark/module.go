@@ -21,7 +21,7 @@ type Module struct {
 func NewModule(ctx context.Context, js jetstream.JetStream, publisher integration.Publisher) *Module {
 	cars, err := natsaggregate.New(ctx, js,
 		natsaggregate.WithInMemory[car.Car](),
-		natsaggregate.WithEvent[car.Arrived, car.Car]("CarArrived"),
+		natsaggregate.WithEvent[car.Arrived, car.Car](),
 	)
 	if err != nil {
 		slog.Error(err.Error())
