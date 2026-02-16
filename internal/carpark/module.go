@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/alekseev-bro/ddd/pkg/aggregate"
 	"github.com/alekseev-bro/ddd/pkg/codec"
-	"github.com/alekseev-bro/ddd/pkg/eventstore"
 	"github.com/alekseev-bro/ddd/pkg/natsstore"
 	"github.com/alekseev-bro/dddexample/internal/carpark/internal/aggregate/car"
 	carcmd "github.com/alekseev-bro/dddexample/internal/carpark/internal/aggregate/car/command"
@@ -15,7 +15,7 @@ import (
 )
 
 type Module struct {
-	RegisterCarHandler eventstore.CommandHandler[car.Car, carcmd.RegisterCar]
+	RegisterCarHandler aggregate.CommandHandler[car.Car, carcmd.RegisterCar]
 }
 
 func NewModule(ctx context.Context, js jetstream.JetStream, publisher integration.Publisher) *Module {

@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/alekseev-bro/ddd/pkg/aggregate"
 	"github.com/alekseev-bro/ddd/pkg/drivers/stream/esnats"
-	"github.com/alekseev-bro/ddd/pkg/eventstore"
 	"github.com/alekseev-bro/ddd/pkg/stream"
 
 	"github.com/alekseev-bro/ddd/pkg/natsstore"
@@ -28,10 +28,10 @@ type Projector interface {
 }
 
 type Module struct {
-	RegisterCustomer eventstore.CommandHandler[customer.Customer, customercmd.Register]
-	PostOrder        eventstore.CommandHandler[order.Order, ordercmd.Post]
-	OrderStream      eventstore.Subscriber[order.Order]
-	CustomerStream   eventstore.Subscriber[customer.Customer]
+	RegisterCustomer aggregate.CommandHandler[customer.Customer, customercmd.Register]
+	PostOrder        aggregate.CommandHandler[order.Order, ordercmd.Post]
+	OrderStream      aggregate.Subscriber[order.Order]
+	CustomerStream   aggregate.Subscriber[customer.Customer]
 	OrderProjection  orderquery.OrdersLister
 }
 
@@ -60,7 +60,7 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	d, err := eventstore.Project(ctx, ord, customercmd.NewOrderPostedHandler(
+	d, err := aggregate.ProjectEvent(ctx, ord, customercmd.NewOrderPostedHandler(
 		customercmd.NewVerifyOrderHandler(cust),
 	))
 	if err != nil {
@@ -69,7 +69,7 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 	}
 	cons = append(cons, d)
 
-	d, err = eventstore.Project(ctx, cust, ordercmd.NewOrderRejectedHandler(
+	d, err = aggregate.ProjectEvent(ctx, cust, ordercmd.NewOrderRejectedHandler(
 		ordercmd.NewCloseOrderHandler(ord),
 	))
 	if err != nil {

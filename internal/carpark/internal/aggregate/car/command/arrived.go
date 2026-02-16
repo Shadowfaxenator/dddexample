@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
-	"github.com/alekseev-bro/ddd/pkg/eventstore"
 	"github.com/alekseev-bro/ddd/pkg/stream"
 	"github.com/alekseev-bro/dddexample/internal/carpark/internal/aggregate/car"
 )
@@ -14,10 +13,10 @@ type RegisterCar struct {
 }
 
 type registerCarHandler struct {
-	Cars eventstore.Mutator[car.Car, *car.Car]
+	Cars aggregate.Mutator[car.Car, *car.Car]
 }
 
-func NewRegisterCarHandler(cars eventstore.Mutator[car.Car, *car.Car]) *registerCarHandler {
+func NewRegisterCarHandler(cars aggregate.Mutator[car.Car, *car.Car]) *registerCarHandler {
 	return &registerCarHandler{Cars: cars}
 }
 
