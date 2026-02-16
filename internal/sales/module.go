@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"sync"
 
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
 	"github.com/alekseev-bro/ddd/pkg/drivers/stream/natsstream"
@@ -35,7 +36,7 @@ type Module struct {
 }
 
 func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
-	var cons stream.DrainList
+
 	cust, err := na.New(ctx, js,
 		na.WithInMemory[customer.Customer](),
 		na.WithSnapshotEventCount[customer.Customer](5),
@@ -43,7 +44,6 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 		na.WithEvent[customer.OrderAccepted, customer.Customer](),
 		na.WithEvent[customer.Registered, customer.Customer](),
 	)
-
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
@@ -60,51 +60,44 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	d, err := aggregate.ProjectEvent(ctx, ord, customercmd.NewOrderPostedHandler(
+	if err := aggregate.ProjectEvent(ctx, ord, customercmd.NewOrderPostedHandler(
 		customercmd.NewVerifyOrderHandler(cust),
-	))
-	if err != nil {
+	)); err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	cons = append(cons, d)
 
-	d, err = aggregate.ProjectEvent(ctx, cust, ordercmd.NewOrderRejectedHandler(
+	if err = aggregate.ProjectEvent(ctx, cust, ordercmd.NewOrderRejectedHandler(
 		ordercmd.NewCloseOrderHandler(ord),
-	))
-	if err != nil {
+	)); err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	cons = append(cons, d)
+
 	custproj := custquery.NewCustomerProjection()
 	ordproj := orderquery.NewMemOrders()
-	d, err = ord.Subscribe(ctx, orderquery.NewOrderListProjector(custproj, ordproj))
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-	cons = append(cons, d)
 
-	d, err = cust.Subscribe(ctx, custquery.NewCustomerListProjector(custproj))
-	if err != nil {
+	if err = ord.Subscribe(ctx, orderquery.NewOrderListProjector(custproj, ordproj)); err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	cons = append(cons, d)
 
-	d, err = cust.Subscribe(ctx, custquery.NewCustomerListProjector(custproj))
+	if err = cust.Subscribe(ctx, custquery.NewCustomerListProjector(custproj)); err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+
+	if err = cust.Subscribe(ctx, custquery.NewCustomerListProjector(custproj)); err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+
+	es, err := natsstream.NewStore(ctx, js, "car", natsstream.WithStoreType(natsstream.Memory))
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	cons = append(cons, d)
-	dr, err := natsstream.NewStore(ctx, js, "car", natsstream.WithStoreType(natsstream.Memory))
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-	carStream, err := stream.New(dr, stream.WithEvent[carpark.CarArrived]())
+	carStream, err := stream.New(es, stream.WithEvent[carpark.CarArrived]())
 	_ = carStream
 	// carStream.Subscribe(ctx, nil)
 
@@ -118,10 +111,17 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 
 	go func() {
 		<-ctx.Done()
-		if err := cons.Drain(); err != nil {
-			slog.Error("subscription drain", "error", err)
-			return
-		}
+		wg := new(sync.WaitGroup)
+		wg.Go(func() {
+			cust.Drain()
+		})
+		wg.Go(func() {
+			ord.Drain()
+		})
+		wg.Go(func() {
+			carStream.Drain()
+		})
+		wg.Wait()
 		slog.Info("all drainded")
 	}()
 

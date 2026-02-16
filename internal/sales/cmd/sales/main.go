@@ -90,5 +90,5 @@ func main() {
 	}
 
 	<-ctx.Done()
-
+	time.Sleep(2 * time.Second)
 }
