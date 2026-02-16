@@ -100,7 +100,10 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 	}
 	cons = append(cons, d)
 	dr, err := esnats.NewDriver(ctx, js, "car", esnats.WithStoreType(esnats.Memory))
-
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
 	carStream := stream.New(ctx, dr, stream.WithEvent[carpark.CarArrived]("CarArrived"))
 	_ = carStream
 	// carStream.Subscribe(ctx, nil)
