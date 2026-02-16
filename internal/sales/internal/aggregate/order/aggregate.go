@@ -34,7 +34,7 @@ func New(customerID aggregate.ID, cars OrderLines) *Order {
 
 func (o *Order) Post(ord *Order) (aggregate.Events[Order], error) {
 	if o.Status != StatusNew {
-		return nil, aggregate.ErrAggregateAlreadyExists
+		return nil, aggregate.ErrAlreadyExists
 	}
 	return aggregate.NewEvents(&Posted{
 		OrderID:    ord.ID,

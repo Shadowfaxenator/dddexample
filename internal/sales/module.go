@@ -44,6 +44,7 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 		natsaggregate.WithEvent[customer.OrderAccepted, customer.Customer]("OrderAccepted"),
 		natsaggregate.WithEvent[customer.Registered, customer.Customer]("CustomerRegistered"),
 	)
+
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)

@@ -32,7 +32,7 @@ func New(name string, age uint, addresses []Address) *Customer {
 
 func (c *Customer) Register(cust *Customer) (aggregate.Events[Customer], error) {
 	if c.Exists {
-		return nil, aggregate.ErrAggregateAlreadyExists
+		return nil, aggregate.ErrAlreadyExists
 	}
 	return aggregate.NewEvents(&Registered{
 		CustomerID:   cust.ID,
