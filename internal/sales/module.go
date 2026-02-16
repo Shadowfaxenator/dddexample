@@ -2,9 +2,7 @@ package sales
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
-	"math/rand/v2"
 	"os"
 
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
@@ -45,8 +43,7 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 		na.WithEvent[customer.OrderAccepted, customer.Customer]("OrderAccepted"),
 		na.WithEvent[customer.Registered, customer.Customer]("CustomerRegistered"),
 	)
-	fmt.Printf("rand.Uint64(): %v\n", rand.Uint64())
-	fmt.Printf("rand.Uint64(): %v\n", rand.Uint64())
+
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
