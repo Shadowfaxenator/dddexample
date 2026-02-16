@@ -4,11 +4,10 @@ import (
 	"errors"
 
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
-	eventstore1 "github.com/alekseev-bro/ddd/pkg/aggregate"
 )
 
 type Customer struct {
-	ID           eventstore1.ID
+	ID           aggregate.ID
 	Name         string
 	Age          uint
 	Addresses    []Address
@@ -17,7 +16,7 @@ type Customer struct {
 }
 
 func New(name string, age uint, addresses []Address) *Customer {
-	id, err := eventstore1.NewID()
+	id, err := aggregate.NewID()
 	if err != nil {
 		panic(err)
 	}
@@ -31,11 +30,11 @@ func New(name string, age uint, addresses []Address) *Customer {
 
 }
 
-func (c *Customer) Register(cust *Customer) (eventstore1.Events[Customer], error) {
+func (c *Customer) Register(cust *Customer) (aggregate.Events[Customer], error) {
 	if c.Exists {
 		return nil, aggregate.ErrAggregateAlreadyExists
 	}
-	return eventstore1.NewEvents(&Registered{
+	return aggregate.NewEvents(&Registered{
 		CustomerID:   cust.ID,
 		Name:         cust.Name,
 		Age:          cust.Age,
@@ -47,10 +46,10 @@ func (c *Customer) Register(cust *Customer) (eventstore1.Events[Customer], error
 
 var ErrInvalidAge = errors.New("invalid age")
 
-func (c *Customer) VerifyOrder(o eventstore1.ID) (eventstore1.Events[Customer], error) {
+func (c *Customer) VerifyOrder(o aggregate.ID) (aggregate.Events[Customer], error) {
 
 	if c.Age < 18 {
-		return eventstore1.NewEvents(&OrderRejected{OrderID: o, Reason: "too young"}), ErrInvalidAge
+		return aggregate.NewEvents(&OrderRejected{OrderID: o, Reason: "too young"}), ErrInvalidAge
 	}
-	return eventstore1.NewEvents(&OrderAccepted{CustomerID: c.ID, OrderID: o}), nil
+	return aggregate.NewEvents(&OrderAccepted{CustomerID: c.ID, OrderID: o}), nil
 }

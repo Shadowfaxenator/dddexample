@@ -4,14 +4,13 @@ import (
 	"context"
 
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
-	eventstore1 "github.com/alekseev-bro/ddd/pkg/aggregate"
 	"github.com/alekseev-bro/ddd/pkg/stream"
 	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/customer"
 	"github.com/alekseev-bro/dddexample/internal/sales/internal/aggregate/order"
 )
 
 type Close struct {
-	OrderID eventstore1.ID
+	OrderID aggregate.ID
 }
 
 type closeOrderHandler struct {
@@ -24,7 +23,7 @@ func NewCloseOrderHandler(repo orderMutator) *closeOrderHandler {
 
 func (h *closeOrderHandler) HandleCommand(ctx context.Context, cmd Close) ([]stream.MsgMetadata, error) {
 
-	return h.Orders.Mutate(ctx, cmd.OrderID, func(state *order.Order) (eventstore1.Events[order.Order], error) {
+	return h.Orders.Mutate(ctx, cmd.OrderID, func(state *order.Order) (aggregate.Events[order.Order], error) {
 		return state.Close()
 	})
 }
