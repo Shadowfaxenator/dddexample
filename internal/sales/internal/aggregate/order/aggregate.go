@@ -19,7 +19,10 @@ func New(customerID aggregate.ID, cars OrderLines) *Order {
 	if err != nil {
 		panic(err)
 	}
-	id := aggregate.NewID()
+	id, err := aggregate.NewID()
+	if err != nil {
+		panic(err)
+	}
 
 	o := &Order{
 		ID:         id,

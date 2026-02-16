@@ -47,7 +47,11 @@ type Car struct {
 }
 
 func New(model string, brand string) *Car {
-	return &Car{ID: aggregate.NewID(), VIN: uuid.New().String(), CarModel: CarModel{brand, model}}
+	id, err := aggregate.NewID()
+	if err != nil {
+		panic(err)
+	}
+	return &Car{ID: id, VIN: uuid.New().String(), CarModel: CarModel{brand, model}}
 }
 
 func (c *Car) Register(car *Car) (aggregate.Events[Car], error) {

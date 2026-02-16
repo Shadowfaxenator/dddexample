@@ -50,15 +50,22 @@ func main() {
 	}
 
 	for range 10 {
-
+		carid1, err := aggregate.NewID()
+		if err != nil {
+			panic(err)
+		}
+		carid2, err := aggregate.NewID()
+		if err != nil {
+			panic(err)
+		}
 		o := order.New(c.ID, order.OrderLines{
 			order.OrderLine{
-				CarID:    aggregate.NewID(),
+				CarID:    carid1,
 				Quantity: 1,
 				Price:    values.NewMoney("USD", 200, 2),
 			},
 			order.OrderLine{
-				CarID:    aggregate.NewID(),
+				CarID:    carid2,
 				Quantity: 2,
 				Price:    values.NewMoney("USD", 100, 2),
 			},

@@ -17,7 +17,10 @@ type Customer struct {
 }
 
 func New(name string, age uint, addresses []Address) *Customer {
-	id := aggregate.NewID()
+	id, err := aggregate.NewID()
+	if err != nil {
+		panic(err)
+	}
 
 	return &Customer{
 		ID:        id,
