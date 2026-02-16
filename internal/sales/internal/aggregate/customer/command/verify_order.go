@@ -23,14 +23,14 @@ func NewVerifyOrderHandler(repo customerMutator) *verifyOrderHandler {
 	return &verifyOrderHandler{Customers: repo}
 }
 
-func (h *verifyOrderHandler) HandleCommand(ctx context.Context, cmd VerifyOrder) ([]stream.MsgMetadata, error) {
+func (h *verifyOrderHandler) HandleCommand(ctx context.Context, cmd VerifyOrder) ([]stream.EventMetadata, error) {
 	return h.Customers.Mutate(ctx, cmd.OfCustomer, func(state *customer.Customer) (aggregate.Events[customer.Customer], error) {
 		return state.VerifyOrder(cmd.OrderID)
 	})
 }
 
 type VerifyOrderHandler interface {
-	HandleCommand(ctx context.Context, cmd VerifyOrder) ([]stream.MsgMetadata, error)
+	HandleCommand(ctx context.Context, cmd VerifyOrder) ([]stream.EventMetadata, error)
 }
 
 func NewOrderPostedHandler(handler VerifyOrderHandler) *orderPostedHandler {

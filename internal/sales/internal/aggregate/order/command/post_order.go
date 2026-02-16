@@ -20,7 +20,7 @@ func NewPostOrderHandler(repo orderMutator) *postOrderHandler {
 	return &postOrderHandler{Orders: repo}
 }
 
-func (h *postOrderHandler) HandleCommand(ctx context.Context, cmd Post) ([]stream.MsgMetadata, error) {
+func (h *postOrderHandler) HandleCommand(ctx context.Context, cmd Post) ([]stream.EventMetadata, error) {
 
 	return h.Orders.Mutate(ctx, cmd.Order.ID, func(state *order.Order) (aggregate.Events[order.Order], error) {
 		return state.Post(cmd.Order)

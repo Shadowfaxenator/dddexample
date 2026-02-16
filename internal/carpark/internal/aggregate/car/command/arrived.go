@@ -20,7 +20,7 @@ func NewRegisterCarHandler(cars aggregate.Mutator[car.Car, *car.Car]) *registerC
 	return &registerCarHandler{Cars: cars}
 }
 
-func (h *registerCarHandler) HandleCommand(ctx context.Context, cmd RegisterCar) ([]stream.MsgMetadata, error) {
+func (h *registerCarHandler) HandleCommand(ctx context.Context, cmd RegisterCar) ([]stream.EventMetadata, error) {
 	return h.Cars.Mutate(ctx, cmd.Car.ID, func(state *car.Car) (aggregate.Events[car.Car], error) {
 		return state.Register(cmd.Car)
 	})

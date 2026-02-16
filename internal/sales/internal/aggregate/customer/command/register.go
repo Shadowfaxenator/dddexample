@@ -21,7 +21,7 @@ func NewRegisterHandler(repo customerMutator) *registerHandler {
 	return &registerHandler{Customers: repo}
 }
 
-func (h *registerHandler) HandleCommand(ctx context.Context, cmd Register) ([]stream.MsgMetadata, error) {
+func (h *registerHandler) HandleCommand(ctx context.Context, cmd Register) ([]stream.EventMetadata, error) {
 
 	return h.Customers.Mutate(ctx, cmd.Customer.ID, func(state *customer.Customer) (aggregate.Events[customer.Customer], error) {
 		return state.Register(cmd.Customer)

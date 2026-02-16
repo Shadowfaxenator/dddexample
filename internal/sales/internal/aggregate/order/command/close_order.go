@@ -21,7 +21,7 @@ func NewCloseOrderHandler(repo orderMutator) *closeOrderHandler {
 	return &closeOrderHandler{Orders: repo}
 }
 
-func (h *closeOrderHandler) HandleCommand(ctx context.Context, cmd Close) ([]stream.MsgMetadata, error) {
+func (h *closeOrderHandler) HandleCommand(ctx context.Context, cmd Close) ([]stream.EventMetadata, error) {
 
 	return h.Orders.Mutate(ctx, cmd.OrderID, func(state *order.Order) (aggregate.Events[order.Order], error) {
 		return state.Close()
