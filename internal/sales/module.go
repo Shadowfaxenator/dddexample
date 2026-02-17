@@ -4,9 +4,10 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"sync"
 
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
-	"github.com/alekseev-bro/ddd/pkg/drivers/stream/esnats"
+	"github.com/alekseev-bro/ddd/pkg/drivers/stream/natsstream"
 	"github.com/alekseev-bro/ddd/pkg/stream"
 
 	na "github.com/alekseev-bro/ddd/pkg/natsaggregate"
@@ -35,15 +36,14 @@ type Module struct {
 }
 
 func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
-	var cons []stream.Drainer
+
 	cust, err := na.New(ctx, js,
 		na.WithInMemory[customer.Customer](),
 		na.WithSnapshotEventCount[customer.Customer](5),
-		na.WithEvent[customer.OrderRejected, customer.Customer]("OrderRejected"),
-		na.WithEvent[customer.OrderAccepted, customer.Customer]("OrderAccepted"),
-		na.WithEvent[customer.Registered, customer.Customer]("CustomerRegistered"),
+		na.WithEvent[customer.OrderRejected, customer.Customer](),
+		na.WithEvent[customer.OrderAccepted, customer.Customer](),
+		na.WithEvent[customer.Registered, customer.Customer](),
 	)
-
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
@@ -52,59 +52,52 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 	ord, err := na.New(ctx, js,
 		na.WithInMemory[order.Order](),
 		na.WithSnapshotEventCount[order.Order](5),
-		na.WithEvent[order.Closed, order.Order]("OrderClosed"),
-		na.WithEvent[order.Posted, order.Order]("OrderPosted"),
-		na.WithEvent[order.Verified, order.Order]("OrderVerified"),
+		na.WithEvent[order.Closed, order.Order](),
+		na.WithEvent[order.Posted, order.Order](),
+		na.WithEvent[order.Verified, order.Order](),
 	)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	d, err := aggregate.ProjectEvent(ctx, ord, customercmd.NewOrderPostedHandler(
+	if err := aggregate.ProjectEvent(ctx, ord, customercmd.NewOrderPostedHandler(
 		customercmd.NewVerifyOrderHandler(cust),
-	))
-	if err != nil {
+	)); err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	cons = append(cons, d)
 
-	d, err = aggregate.ProjectEvent(ctx, cust, ordercmd.NewOrderRejectedHandler(
+	if err = aggregate.ProjectEvent(ctx, cust, ordercmd.NewOrderRejectedHandler(
 		ordercmd.NewCloseOrderHandler(ord),
-	))
-	if err != nil {
+	)); err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	cons = append(cons, d)
+
 	custproj := custquery.NewCustomerProjection()
 	ordproj := orderquery.NewMemOrders()
-	d, err = ord.Subscribe(ctx, orderquery.NewOrderListProjector(custproj, ordproj))
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-	cons = append(cons, d)
 
-	d, err = cust.Subscribe(ctx, custquery.NewCustomerListProjector(custproj))
-	if err != nil {
+	if err = ord.Subscribe(ctx, orderquery.NewOrderListProjector(custproj, ordproj)); err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	cons = append(cons, d)
 
-	d, err = cust.Subscribe(ctx, custquery.NewCustomerListProjector(custproj))
+	if err = cust.Subscribe(ctx, custquery.NewCustomerListProjector(custproj)); err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+
+	if err = cust.Subscribe(ctx, custquery.NewCustomerListProjector(custproj)); err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+
+	es, err := natsstream.NewStore(ctx, js, "car", natsstream.WithStoreType(natsstream.Memory))
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	cons = append(cons, d)
-	dr, err := esnats.NewStore(ctx, js, "car", esnats.WithStoreType(esnats.Memory))
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-	carStream := stream.New(dr, stream.WithEvent[carpark.CarArrived]("CarArrived"))
+	carStream, err := stream.New(es, stream.WithEvent[carpark.CarArrived]())
 	_ = carStream
 	// carStream.Subscribe(ctx, nil)
 
@@ -118,11 +111,17 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 
 	go func() {
 		<-ctx.Done()
-		for _, c := range cons {
-			if err := c.Drain(); err != nil {
-				slog.Error("subscription drain", "error", err)
-			}
-		}
+		wg := new(sync.WaitGroup)
+		wg.Go(func() {
+			cust.Drain()
+		})
+		wg.Go(func() {
+			ord.Drain()
+		})
+		wg.Go(func() {
+			carStream.Drain()
+		})
+		wg.Wait()
 		slog.Info("all drainded")
 	}()
 

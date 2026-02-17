@@ -21,21 +21,22 @@ type Module struct {
 func NewModule(ctx context.Context, js jetstream.JetStream, publisher integration.Publisher) *Module {
 	cars, err := natsaggregate.New(ctx, js,
 		natsaggregate.WithInMemory[car.Car](),
-		natsaggregate.WithEvent[car.Arrived, car.Car]("CarArrived"),
+		natsaggregate.WithEvent[car.Arrived, car.Car](),
 	)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	d, err := cars.Subscribe(ctx, integration.NewCarHandler(publisher, codec.JSON))
-	if err != nil {
+	if err = cars.Subscribe(ctx, integration.NewCarHandler(publisher, codec.JSON)); err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
 
 	go func() {
 		<-ctx.Done()
-		d.Drain()
+		if err := cars.Drain(); err != nil {
+			slog.Error(err.Error())
+		}
 	}()
 
 	return &Module{
