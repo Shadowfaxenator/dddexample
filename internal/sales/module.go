@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/alekseev-bro/ddd/pkg/aggregate"
+	"github.com/alekseev-bro/ddd/pkg/drivers/snapshot/natssnapshot"
 	"github.com/alekseev-bro/ddd/pkg/drivers/stream/natsstream"
 	"github.com/alekseev-bro/ddd/pkg/stream"
 
@@ -28,21 +29,31 @@ type Projector interface {
 }
 
 type Module struct {
-	RegisterCustomer aggregate.CommandHandler[customer.Customer, customercmd.Register]
-	PostOrder        aggregate.CommandHandler[order.Order, ordercmd.Post]
+	RegisterCustomer aggregate.CommandHandler[customercmd.Register, customer.Customer]
+	PostOrder        aggregate.CommandHandler[ordercmd.Post, order.Order]
 	OrderStream      aggregate.Subscriber[order.Order]
 	CustomerStream   aggregate.Subscriber[customer.Customer]
 	OrderProjection  orderquery.OrdersLister
 }
 
 func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
-
-	cust, err := na.New(ctx, js,
-		na.WithInMemory[customer.Customer](),
-		na.WithSnapshotEventCount[customer.Customer](5),
-		na.WithEvent[customer.OrderRejected, customer.Customer](),
-		na.WithEvent[customer.OrderAccepted, customer.Customer](),
-		na.WithEvent[customer.Registered, customer.Customer](),
+	cusstream, err := natsstream.New(ctx, js, "customer",
+		natsstream.WithStoreType(natsstream.Memory))
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+	csnap, err := natssnapshot.New(ctx, js, "customer",
+		natssnapshot.WithStoreType(natssnapshot.Memory))
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+	cust, err := aggregate.New(ctx, cusstream, csnap,
+		aggregate.WithSnapshotEventCount[customer.Customer](5),
+		aggregate.WithEvent[customer.OrderRejected, customer.Customer](),
+		aggregate.WithEvent[customer.OrderAccepted, customer.Customer](),
+		aggregate.WithEvent[customer.Registered, customer.Customer](),
 	)
 	if err != nil {
 		slog.Error(err.Error())
@@ -92,7 +103,7 @@ func NewModule(ctx context.Context, js jetstream.JetStream) *Module {
 		os.Exit(1)
 	}
 
-	es, err := natsstream.NewStore(ctx, js, "car", natsstream.WithStoreType(natsstream.Memory))
+	es, err := natsstream.New(ctx, js, "car", natsstream.WithStoreType(natsstream.Memory))
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)

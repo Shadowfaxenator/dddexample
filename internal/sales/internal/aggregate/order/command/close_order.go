@@ -28,11 +28,13 @@ func (h *closeOrderHandler) HandleCommand(ctx context.Context, cmd Close) ([]str
 	})
 }
 
+type closeOrderCmdHandler aggregate.CommandHandler[Close, order.Order]
+
 type orderRejectedHandler struct {
-	CloseOrderHandler aggregate.CommandHandler[order.Order, Close]
+	CloseOrderHandler closeOrderCmdHandler
 }
 
-func NewOrderRejectedHandler(h aggregate.CommandHandler[order.Order, Close]) *orderRejectedHandler {
+func NewOrderRejectedHandler(h closeOrderCmdHandler) *orderRejectedHandler {
 
 	return &orderRejectedHandler{CloseOrderHandler: h}
 }

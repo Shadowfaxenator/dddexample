@@ -15,7 +15,7 @@ import (
 )
 
 type Module struct {
-	RegisterCarHandler aggregate.CommandHandler[car.Car, carcmd.RegisterCar]
+	RegisterCarHandler aggregate.CommandHandler[carcmd.RegisterCar, car.Car]
 }
 
 func NewModule(ctx context.Context, js jetstream.JetStream, publisher integration.Publisher) *Module {

@@ -29,16 +29,14 @@ func (h *verifyOrderHandler) HandleCommand(ctx context.Context, cmd VerifyOrder)
 	})
 }
 
-type VerifyOrderHandler interface {
-	HandleCommand(ctx context.Context, cmd VerifyOrder) ([]stream.EventMetadata, error)
-}
+type verifyOrderCmdHandler aggregate.CommandHandler[VerifyOrder, customer.Customer]
 
-func NewOrderPostedHandler(handler VerifyOrderHandler) *orderPostedHandler {
+func NewOrderPostedHandler(handler verifyOrderCmdHandler) *orderPostedHandler {
 	return &orderPostedHandler{handler: handler}
 }
 
 type orderPostedHandler struct {
-	handler VerifyOrderHandler
+	handler verifyOrderCmdHandler
 }
 
 func (h *orderPostedHandler) HandleEvent(ctx context.Context, e *order.Posted) error {
