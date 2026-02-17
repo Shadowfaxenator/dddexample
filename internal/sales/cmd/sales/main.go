@@ -78,6 +78,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+
 	}
 	<-time.After(time.Second * 2)
 	l, err := s.OrderProjection.ListOrders()
